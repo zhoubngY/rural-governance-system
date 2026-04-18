@@ -1,0 +1,133 @@
+rural-governance-system
+├── backend
+│   ├── alembic
+│   │   ├── versions
+│   │   │   ├── versions
+│   │   │   │   ├── 73a1e3f721b8_add_work_notes_table.py
+│   │   │   │   ├── c82f19a6beba_current_schema.py
+│   │   │   │   └── d187002f7d2c_current_schema.py
+│   │   │   └── c82f19a6beba_current_schema.py
+│   │   ├── env.py
+│   │   ├── README
+│   │   └── script.py.mako
+│   ├── app
+│   │   ├── api
+│   │   │   └── v1
+│   │   │       ├── __init__.py
+│   │   │       ├── auth.py
+│   │   │       ├── notes.py
+│   │   │       ├── policy.py
+│   │   │       ├── tasks.py
+│   │   │       └── users.py
+│   │   ├── core
+│   │   │   ├── config.py
+│   │   │   ├── database.py
+│   │   │   ├── middleware.py
+│   │   │   └── security.py
+│   │   ├── crud
+│   │   │   ├── __init__.py
+│   │   │   ├── base.py
+│   │   │   ├── note_crud.py
+│   │   │   ├── policy_crud.py
+│   │   │   ├── task_crud.py
+│   │   │   └── user_crud.py
+│   │   ├── models
+│   │   │   ├── __init__.py
+│   │   │   ├── base.py
+│   │   │   ├── note.py
+│   │   │   ├── policy.py
+│   │   │   ├── task.py
+│   │   │   └── user.py
+│   │   ├── schemas
+│   │   │   ├── __init__.py
+│   │   │   ├── note.py
+│   │   │   ├── policy.py
+│   │   │   ├── task.py
+│   │   │   ├── token.py
+│   │   │   └── user.py
+│   │   ├── services
+│   │   │   └── task_service.py
+│   │   ├── __init__.py
+│   │   └── main.py
+│   ├── uploads
+│   ├── alembic.ini
+│   ├── Dockerfile
+│   └── requirements.txt
+├── frontend
+│   ├── packages
+│   │   ├── shared
+│   │   │   ├── src
+│   │   │   │   ├── api
+│   │   │   │   │   └── client.ts
+│   │   │   │   └── types
+│   │   │   │       └── index.ts
+│   │   │   └── package.json
+│   │   ├── web-admin
+│   │   │   ├── public
+│   │   │   ├── src
+│   │   │   │   ├── components
+│   │   │   │   │   ├── NoteList.vue
+│   │   │   │   │   └── TaskList.vue
+│   │   │   │   ├── router
+│   │   │   │   │   └── index.ts
+│   │   │   │   ├── stores
+│   │   │   │   │   └── auth.ts
+│   │   │   │   ├── views
+│   │   │   │   │   ├── Dashboard.vue
+│   │   │   │   │   ├── Login.vue
+│   │   │   │   │   ├── MyTasks.vue
+│   │   │   │   │   ├── Notes.vue
+│   │   │   │   │   ├── PolicyManagement.vue
+│   │   │   │   │   ├── TaskManagement.vue
+│   │   │   │   │   ├── UserCreate.vue
+│   │   │   │   │   └── UserManagement.vue
+│   │   │   │   ├── App.vue
+│   │   │   │   └── main.ts
+│   │   │   ├── components.d.ts
+│   │   │   ├── index.html
+│   │   │   ├── package.json
+│   │   │   ├── tsconfig.json
+│   │   │   ├── tsconfig.node.json
+│   │   │   └── vite.config.ts
+│   │   └── web-user
+│   │       ├── src
+│   │       │   ├── router
+│   │       │   │   └── index.ts
+│   │       │   ├── stores
+│   │       │   │   └── auth.ts
+│   │       │   ├── views
+│   │       │   │   ├── Home.vue
+│   │       │   │   ├── Login.vue
+│   │       │   │   ├── PolicyList.vue
+│   │       │   │   ├── Register.vue
+│   │       │   │   ├── TaskDetail.vue
+│   │       │   │   └── TaskList.vue
+│   │       │   ├── App.vue
+│   │       │   └── main.ts
+│   │       ├── components.d.ts
+│   │       ├── index.html
+│   │       ├── package.json
+│   │       ├── tsconfig.json
+│   │       ├── tsconfig.node.json
+│   │       └── vite.config.ts
+│   ├── package.json
+│   ├── pnpm-lock.yaml
+│   └── pnpm-workspace.yaml
+├── nlp-service
+│   ├── app
+│   │   └── main.py
+│   ├── data
+│   ├── models_store
+│   ├── Dockerfile
+│   └── requirements.txt
+├── .env
+├── .env.example
+├── .gitignore
+├── docker-compose.yml
+├── env.py
+├── ff.py
+├── manage.py
+├── note.py
+├── notes.py
+├── README.md
+└── start-dev.ps1

@@ -1,0 +1,3 @@
+packages:
+  - 'packages/*'
+  - 'packages/shared'   # 可省略，因为 packages/* 已包含

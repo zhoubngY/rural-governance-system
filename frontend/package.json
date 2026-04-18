@@ -1,0 +1,10 @@
+{
+  "name": "rural-governance-frontend",
+  "private": true,
+  "scripts": {
+    "dev:user": "pnpm --filter web-user dev",
+    "dev:admin": "pnpm --filter web-admin dev",
+    "build:user": "pnpm --filter web-user build",
+    "build:admin": "pnpm --filter web-admin build"
+  }
+}
