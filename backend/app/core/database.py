@@ -1,3 +1,6 @@
+# 改动说明：
+# 使用 settings.async_database_url 替代原来的 settings.DATABASE_URL。
+# 其他逻辑完全保留，不影响本地开发。
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy import text
 from app.core.config import settings
@@ -6,12 +9,14 @@ from typing import Optional
 
 tenant_schema_var: ContextVar[Optional[str]] = ContextVar("tenant_schema", default=None)
 
+# 使用 config 提供的异步 URL
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    settings.async_database_url,
     pool_size=settings.DATABASE_POOL_SIZE,
     max_overflow=settings.DATABASE_MAX_OVERFLOW,
     echo=False
 )
+
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 async def get_db() -> AsyncSession:
