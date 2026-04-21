@@ -1,21 +1,22 @@
 import axios from 'axios';
 
-// 从环境变量获取后端 API 基址，如果未设置则使用相对路径（开发环境）
-const baseURL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+// 强制使用环境变量，如果未定义则报错
+const baseURL = import.meta.env.VITE_API_BASE_URL;
+if (!baseURL) {
+  console.error('VITE_API_BASE_URL is not defined!');
+}
 
 const apiClient = axios.create({
-  baseURL,
+  baseURL: baseURL || '/api/v1',
   headers: { 'Content-Type': 'application/json' },
 });
 
 apiClient.interceptors.request.use((config) => {
-  // 添加 token
   const token = localStorage.getItem('access_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   
-  // 添加租户ID（必须）
   const villageId = localStorage.getItem('village_id');
   if (villageId) {
     config.headers['X-Tenant-ID'] = villageId;
@@ -23,7 +24,6 @@ apiClient.interceptors.request.use((config) => {
     config.headers['X-Tenant-ID'] = '1';
   }
   
-  // 登录接口特殊处理（如有需要）
   if (config.url?.includes('/auth/login')) {
     config.headers['Content-Type'] = 'application/x-www-form-urlencoded';
   }
