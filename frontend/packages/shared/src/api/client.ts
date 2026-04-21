@@ -1,16 +1,14 @@
 import axios from 'axios';
 
-// 强制使用环境变量，如果未定义则报错
-const baseURL = import.meta.env.VITE_API_BASE_URL;
-if (!baseURL) {
-  console.error('VITE_API_BASE_URL is not defined!');
-}
+// 临时硬编码后端地址
+const baseURL = 'https://my-dev--main-ebtk.diploi.me/api/v1';
 
 const apiClient = axios.create({
-  baseURL: baseURL || '/api/v1',
+  baseURL,
   headers: { 'Content-Type': 'application/json' },
 });
 
+// 以下代码保持不变
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token');
   if (token) {
