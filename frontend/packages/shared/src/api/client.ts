@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+// 从环境变量获取后端 API 基址，如果未设置则使用相对路径（开发环境）
+const baseURL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+
 const apiClient = axios.create({
-  baseURL: '/api/v1',
+  baseURL,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -17,7 +20,6 @@ apiClient.interceptors.request.use((config) => {
   if (villageId) {
     config.headers['X-Tenant-ID'] = villageId;
   } else {
-    // 如果尚未存储（比如登录页面），可设置默认租户ID（例如1）
     config.headers['X-Tenant-ID'] = '1';
   }
   
