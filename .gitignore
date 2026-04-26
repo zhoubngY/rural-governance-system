@@ -1,7 +1,38 @@
+# 虚拟环境
 venv/
+env/
+
+# Python 缓存
 __pycache__/
 *.pyc
+*.pyo
+
+# 环境变量（敏感）
 .env
+.env.local
+.env.*.local
+
+# 前端依赖
 node_modules/
 dist/
 .DS_Store
+
+# 编辑器
+.vscode/
+.idea/
+
+# 临时备份文件（可根据需要调整）
+*.bak
+*.sql.bak
+*~ 
+*.py.          # 匹配 task.py. 这种
+*_fix.py       # 匹配所有修复脚本
+
+# 目录树导出文件
+*_tree.txt
+
+# 数据库备份（如果你确定不提交任何 SQL 备份）
+# *.sql   ← 先注释掉，只忽略 .sql.bak*.py. 
+*.py. 
+rural-governance-system_tree.txt 
+rural-governance-system_tree.txt 
