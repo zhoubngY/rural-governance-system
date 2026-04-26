@@ -1,14 +1,14 @@
 import axios from 'axios';
 
-// 临时硬编码后端地址
-const baseURL = 'https://my-dev--main-ebtk.diploi.me/api/v1';
+// 使用相对路径，让 Vite 代理转发到本地后端
+// 开发环境下，Vite 会将 /api 代理到 http://localhost:8000
+const baseURL = '/api/v1';
 
 const apiClient = axios.create({
   baseURL,
   headers: { 'Content-Type': 'application/json' },
 });
 
-// 以下代码保持不变
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token');
   if (token) {

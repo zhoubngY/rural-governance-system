@@ -49,9 +49,6 @@ async def create_note(
     if isinstance(note_in.type, str):
         note_in.type = note_in.type.lower()
     data = note_in.dict()
-    import json
-    if data.get("extra_data"):
-        data["extra_data"] = json.dumps(data["extra_data"])
     data["user_id"] = current_user.id
     note = await note_crud.create(db, obj_in=data)
     await db.commit()

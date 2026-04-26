@@ -1,27 +1,36 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
-from app.models.task import TaskStatus
+from typing import Optional, Dict, Any
 
 class TaskBase(BaseModel):
     title: str
-    description: str | None = None
+    description: Optional[str] = None
+    priority: str = "medium"
+    due_date: Optional[str] = None
+    extra_data: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 class TaskCreate(TaskBase):
     pass
 
 class TaskUpdate(BaseModel):
-    title: str | None = None
-    description: str | None = None
-    status: TaskStatus | None = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    priority: Optional[str] = None
+    status: Optional[str] = None
+    due_date: Optional[str] = None
+    extra_data: Optional[Dict[str, Any]] = None
 
 class TaskAssign(BaseModel):
     assignee_id: int
 
 class TaskInDB(TaskBase):
     id: int
-    status: TaskStatus
+    status: str
     creator_id: int
-    assignee_id: int | None = None
     created_at: datetime
+    assignee_id: Optional[int] = None
+    assignee_name: Optional[str] = None
+    creator_name: Optional[str] = None
+
     class Config:
         from_attributes = True

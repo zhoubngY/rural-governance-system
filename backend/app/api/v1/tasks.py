@@ -1,13 +1,30 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from typing import List
 from app.core.database import get_db
 from app.core.security import get_current_user, RoleChecker
 from app.services.task_service import task_service
-from app.schemas.task import TaskCreate, TaskInDB, TaskAssign
+from app.schemas.task import TaskCreate, TaskInDB, TaskAssign, TaskUpdate
 from app.models.user import User
+from app.models.task import Task
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
+
+async def enrich_tasks_with_usernames(db: AsyncSession, tasks: List[Task]) -> List[Task]:
+    user_ids = set()
+    for t in tasks:
+        if t.assignee_id:
+            user_ids.add(t.assignee_id)
+        user_ids.add(t.creator_id)
+    if not user_ids:
+        return tasks
+    result = await db.execute(select(User).where(User.id.in_(user_ids)))
+    users = {u.id: u for u in result.scalars().all()}
+    for t in tasks:
+        t.assignee_name = users[t.assignee_id].full_name if t.assignee_id and t.assignee_id in users else None
+        t.creator_name = users[t.creator_id].full_name if t.creator_id in users else None
+    return tasks
 
 @router.post("/", response_model=TaskInDB, status_code=status.HTTP_201_CREATED)
 async def create_task(
@@ -55,7 +72,45 @@ async def read_tasks(
     if current_user.role == "villager":
         tasks = await task_service.get_by_creator(db, creator_id=current_user.id)
     elif current_user.role == "staff":
-        tasks = await task_service.get_by_assignee(db, assignee_id=current_user.id)
+        tasks = await task_service.get_by_assignee_or_creator(
+            db, assignee_id=current_user.id, creator_id=current_user.id
+        )
     else:
         tasks = await task_service.get_multi(db)
+    tasks = await enrich_tasks_with_usernames(db, tasks)
     return tasks
+
+@router.get("/{task_id}", response_model=TaskInDB)
+async def read_task(
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    task = await task_service.get_one(db, task_id=task_id)
+    if current_user.role == "admin":
+        pass
+    elif current_user.role == "staff":
+        if task.creator_id != current_user.id and task.assignee_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized")
+    elif current_user.role == "villager" and task.creator_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    tasks = await enrich_tasks_with_usernames(db, [task])
+    return tasks[0]
+
+@router.put("/{task_id}", response_model=TaskInDB)
+async def update_task(
+    task_id: int,
+    task_in: TaskUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(RoleChecker(["admin", "staff"]))
+):
+    task = await task_service.update_task(db, task_id=task_id, obj_in=task_in, user=current_user)
+    return task
+
+@router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_task(
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(RoleChecker(["admin", "staff"]))
+):
+    await task_service.delete_task(db, task_id=task_id, user=current_user)
