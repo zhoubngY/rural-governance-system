@@ -1,36 +1,24 @@
-from pydantic import BaseModel, Field
-from datetime import datetime
-from typing import Optional, Dict, Any
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, JSON
+from sqlalchemy.sql import func
+from app.models.base import Base
 
-class TaskBase(BaseModel):
-    title: str
-    description: Optional[str] = None
-    priority: str = "medium"
-    due_date: Optional[str] = None
-    extra_data: Optional[Dict[str, Any]] = Field(default_factory=dict)
+class Task(Base):
+    __tablename__ = "tasks"
+    __table_args__ = {"schema": "tenant_1"}
 
-class TaskCreate(TaskBase):
-    pass
-
-class TaskUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    priority: Optional[str] = None
-    status: Optional[str] = None
-    due_date: Optional[str] = None
-    extra_data: Optional[Dict[str, Any]] = None
-
-class TaskAssign(BaseModel):
-    assignee_id: int
-
-class TaskInDB(TaskBase):
-    id: int
-    status: str
-    creator_id: int
-    created_at: datetime
-    assignee_id: Optional[int] = None
-    assignee_name: Optional[str] = None
-    creator_name: Optional[str] = None
-
-    class Config:
-        from_attributes = True
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    description = Column(Text)
+    priority = Column(String(20), default="medium")
+    due_date = Column(String(50), nullable=True)
+    extra_data = Column(JSON, default=dict)
+    status = Column(String(20), default="pending")
+    creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    assignee_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    assignee_ids = Column(JSON, default=list)  # 多负责人ID数组
+    assigned_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    assigned_at = Column(DateTime(timezone=True), nullable=True)
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    result_note = Column(Text)

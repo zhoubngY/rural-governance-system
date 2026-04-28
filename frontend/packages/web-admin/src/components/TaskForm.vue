@@ -12,42 +12,71 @@
           </van-radio-group>
         </template>
       </van-field>
-      <van-field label="指派给" :value="assigneeName" readonly @click="showUserPicker = true" placeholder="请选择负责人" />
+
+      <!-- 多选负责人 -->
+      <van-field label="指派给" :value="selectedNames" readonly @click="showUserPicker = true" placeholder="请选择负责人（可多选）" />
       <van-field label="截止日期" :value="dueDateStr || '请选择截止日期'" readonly @click="showDatePicker = true" />
       <van-field label="扩展字段" v-model="extraDataStr" placeholder='JSON格式，如{"地点":"村委会"}' />
+
+      <!-- 附件上传（仅新建时，编辑时暂不考虑） -->
+      <van-field label="附件" v-if="!isEdit">
+        <template #input>
+          <van-uploader v-model="fileList" multiple :max-count="5" accept=".doc,.docx,.xls,.xlsx,.pdf,.txt,.jpg,.png" />
+        </template>
+      </van-field>
     </van-form>
-    <van-action-sheet v-model:show="showUserPicker" title="选择负责人">
-      <van-picker :columns="userOptions" @confirm="onUserConfirm" @cancel="showUserPicker = false" />
+
+    <!-- 多选负责人弹出层 -->
+    <van-action-sheet v-model:show="showUserPicker" title="选择负责人（可多选）">
+      <div class="user-checkbox-group">
+        <van-checkbox-group v-model="selectedUserIds" direction="horizontal">
+          <van-checkbox v-for="user in userOptions" :key="user.value" :name="user.value">{{ user.text }}</van-checkbox>
+        </van-checkbox-group>
+        <div style="padding: 16px">
+          <van-button block type="primary" @click="confirmUsers">确定</van-button>
+        </div>
+      </div>
     </van-action-sheet>
+
     <van-date-picker v-model:show="showDatePicker" type="date" title="选择截止日期" @confirm="onDateConfirm" @cancel="showDatePicker = false" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
-import { showToast } from 'vant'
-import { createTask, updateTask, type Task } from '@/api/tasks'
+import { showToast, showLoadingToast, closeToast } from 'vant'
+import { createTask, updateTask, uploadAttachment, type Task, type TaskCreate } from '@/api/tasks'
 import apiClient from '@shared/api/client'
 
 const props = defineProps<{ initialData?: Task | null }>()
 const emit = defineEmits(['success', 'cancel'])
 
 const isEdit = computed(() => !!props.initialData)
+
+// 表单数据
 const form = reactive({
   title: '',
   description: '',
   priority: 'normal' as 'normal' | 'urgent',
-  assignee_id: undefined as number | undefined,
   due_date: undefined as string | undefined,
   extra_data: {} as Record<string, any>,
 })
-const assigneeName = ref('')
+
+// 多选负责人
+const selectedUserIds = ref<number[]>([])
+const selectedNames = ref('')
+const showUserPicker = ref(false)
+const userOptions = ref<{ text: string; value: number }[]>([])
+
+// 截止日期
 const dueDateStr = ref('')
+const showDatePicker = ref(false)
+
+// 扩展字段（用户手动输入的额外 JSON）
 const extraDataStr = ref('')
 
-const showUserPicker = ref(false)
-const showDatePicker = ref(false)
-const userOptions = ref<{ text: string; value: number }[]>([])
+// 附件列表
+const fileList = ref<any[]>([])
 
 const loadUsers = async () => {
   try {
@@ -60,11 +89,12 @@ const loadUsers = async () => {
   }
 }
 
-const onUserConfirm = ({ selectedValues }: any) => {
-  const userId = selectedValues[0]
-  form.assignee_id = userId
-  const user = userOptions.value.find(u => u.value === userId)
-  assigneeName.value = user?.text || ''
+const confirmUsers = () => {
+  const names = selectedUserIds.value
+    .map(id => userOptions.value.find(u => u.value === id)?.text)
+    .filter(Boolean)
+    .join('、')
+  selectedNames.value = names || '未选择'
   showUserPicker.value = false
 }
 
@@ -93,53 +123,104 @@ const onDateConfirm = ({ selectedValues }: { selectedValues: string[] }) => {
 
 const submit = async () => {
   if (!form.title) return showToast('请填写标题')
+  
+  // 处理用户手动输入的扩展字段
+  let userExtraData = {}
   if (extraDataStr.value.trim()) {
     try {
-      form.extra_data = JSON.parse(extraDataStr.value)
+      userExtraData = JSON.parse(extraDataStr.value)
     } catch {
       return showToast('扩展字段格式错误，请输入有效JSON')
     }
   }
 
   const backendPriority = form.priority === 'urgent' ? 'urgent' : 'medium'
-  const payload = {
+  
+  // 极简方案：将 assignee_ids 合并到 extra_data 中
+  const finalExtraData = {
+    ...userExtraData,
+    assignee_ids: selectedUserIds.value   // 多负责人ID数组存入 extra_data
+  }
+
+  const payload: TaskCreate = {
     title: form.title,
     description: form.description,
     priority: backendPriority,
-    assignee_id: form.assignee_id,
     due_date: form.due_date || null,
-    extra_data: form.extra_data || {}
+    extra_data: finalExtraData
   }
 
+  const toast = showLoadingToast({ message: '提交中...', forbidClick: true })
   try {
+    let taskId: number
     if (isEdit.value && props.initialData) {
       await updateTask(props.initialData.id, payload)
       showToast('更新成功')
+      emit('success')
     } else {
-      await createTask(payload)
+      const res = await createTask(payload)
+      taskId = res.data.id
+      // 上传附件
+      if (fileList.value.length > 0) {
+        for (const item of fileList.value) {
+          if (item.file) {
+            await uploadAttachment(taskId, item.file)
+          }
+        }
+      }
       showToast('创建成功')
+      emit('success')
     }
-    emit('success')
   } catch (err: any) {
     const errorMsg = err.response?.data?.detail || err.message || '操作失败'
     showToast(errorMsg)
-    console.error('创建任务失败:', err)
+    console.error('操作失败:', err)
+  } finally {
+    closeToast()
   }
 }
 
 onMounted(() => {
   loadUsers()
   if (props.initialData) {
+    // 编辑模式回显
     form.title = props.initialData.title
     form.description = props.initialData.description || ''
-    const backendPriority = props.initialData.priority
-    form.priority = backendPriority === 'urgent' ? 'urgent' : 'normal'
-    form.assignee_id = props.initialData.assignee_id
+    form.priority = props.initialData.priority === 'urgent' ? 'urgent' : 'normal'
     form.due_date = props.initialData.due_date
     form.extra_data = props.initialData.extra_data || {}
-    assigneeName.value = props.initialData.assignee_name || (props.initialData.assignee_id ? String(props.initialData.assignee_id) : '')
     dueDateStr.value = props.initialData.due_date ? new Date(props.initialData.due_date).toLocaleDateString() : ''
-    extraDataStr.value = JSON.stringify(form.extra_data, null, 2)
+    
+    // 回显扩展字段（移除 assignee_ids 的显示，避免干扰用户）
+    const { assignee_ids, ...restExtra } = form.extra_data
+    extraDataStr.value = JSON.stringify(restExtra, null, 2)
+    
+    // 多选负责人回显：优先从 extra_data.assignee_ids 读取，兼容旧数据
+    let assigneeIds: number[] = []
+    if (form.extra_data.assignee_ids && Array.isArray(form.extra_data.assignee_ids)) {
+      assigneeIds = form.extra_data.assignee_ids
+    } else if (props.initialData.assignee_id) {
+      assigneeIds = [props.initialData.assignee_id]
+    }
+    selectedUserIds.value = assigneeIds
+    // 构建显示名称
+    const names = assigneeIds
+      .map(id => userOptions.value.find(u => u.value === id)?.text)
+      .filter(Boolean)
+      .join('、')
+    selectedNames.value = names || (assigneeIds.length ? '已选择' : '')
   }
 })
 </script>
+
+<style scoped>
+.user-checkbox-group {
+  padding: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.user-checkbox-group .van-checkbox {
+  width: calc(33% - 8px);
+}
+</style>

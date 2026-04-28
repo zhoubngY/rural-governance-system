@@ -30,8 +30,8 @@
       <TaskForm v-if="showForm" :initial-data="editingTask" @success="onFormSuccess" @cancel="showForm = false" />
     </van-popup>
 
-    <van-popup v-model:show="showDetail" position="bottom" round :style="{ height: '80%' }">
-      <TaskDetail v-if="showDetail && currentTask" :task="currentTask" @updated="onDetailUpdated" @close="showDetail = false" />
+    <van-popup v-model:show="showDetail" position="bottom" round :style="{ height: '90%' }">
+      <TaskDetail v-if="showDetail && currentTaskId" :task-id="currentTaskId" @updated="onDetailUpdated" @close="showDetail = false" />
     </van-popup>
 
     <van-action-sheet v-model:show="showAssignPicker" title="选择负责人">
@@ -47,7 +47,7 @@ import { getTasks, assignTask, startTask, completeTask, type Task } from '@/api/
 import apiClient from '@shared/api/client'
 import TaskCard from '@/components/TaskCard.vue'
 import TaskForm from '@/components/TaskForm.vue'
-import TaskDetail from '@/components/TaskDetail.vue'
+import TaskDetail from '@/views/TaskDetail.vue'   // 注意从 views 导入
 
 const tasks = ref<Task[]>([])
 const loading = ref(false)
@@ -133,9 +133,9 @@ const onFormSuccess = () => {
 }
 
 const showDetail = ref(false)
-const currentTask = ref<Task | null>(null)
+const currentTaskId = ref<number | null>(null)
 const viewDetail = (task: Task) => {
-  currentTask.value = task
+  currentTaskId.value = task.id
   showDetail.value = true
 }
 const onDetailUpdated = () => {
@@ -195,6 +195,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+/* 保持原有样式不变 */
 .task-management {
   padding-bottom: 20px;
   .filter-bar {

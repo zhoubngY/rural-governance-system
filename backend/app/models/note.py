@@ -1,22 +1,15 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Enum
+from sqlalchemy import Column, Integer, String, DateTime, Text
 from sqlalchemy.sql import func
 from app.models.base import Base
-import enum
-
-class NoteType(str, enum.Enum):
-    VEHICLE = "vehicle"
-    ENGINEERING = "engineering"
-    LABOR = "labor"
-    OTHER = "other"
-    MEMO = "memo"
 
 class WorkNote(Base):
     __tablename__ = "work_notes"
+    __table_args__ = {"schema": "tenant_1"}
+
     id = Column(Integer, primary_key=True, index=True)
-    type = Column(Enum(NoteType), nullable=False)
+    type = Column(String(50), nullable=False)
     title = Column(String, nullable=False)
     content = Column(Text)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, nullable=False)   # 移除外键声明
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    extra_data = Column(Text)
