@@ -1,0 +1,31 @@
+@media (min-width: 768px) {
+  body {
+    background-color: #f5f7fa;
+  }
+  .main-content {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .van-nav-bar,
+  .van-list,
+  .van-pull-refresh,
+  .van-cell-group,
+  .van-form,
+  .login-container,
+  .register-container {
+    max-width: 800px;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+  .van-cell {
+    border-radius: 12px;
+    margin: 8px 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  .van-button {
+    border-radius: 24px;
+  }
+  .login-container, .register-container {
+    margin-top: 10vh;
+  }
+}

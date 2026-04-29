@@ -10,7 +10,11 @@ from app.core.database import get_db
 from app.crud.user_crud import user_crud
 from app.models.user import User
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
+# 标准 OAuth2（自动报告错误）
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login", auto_error=True)
+
+# 可选 OAuth2（不自动报错，用于公开接口）
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login", auto_error=False)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
@@ -44,6 +48,22 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
     if user is None:
         raise credentials_exception
     return user
+
+# 可选用户（用于公开接口，允许未登录）
+async def get_current_user_optional(token: Optional[str] = Depends(oauth2_scheme_optional), db: AsyncSession = Depends(get_db)) -> Optional[User]:
+    if not token:
+        return None
+    try:
+        payload = decode_access_token(token)
+        if payload is None:
+            return None
+        user_id = payload.get("sub")
+        if user_id is None:
+            return None
+        user = await user_crud.get(db, id=int(user_id))
+        return user
+    except:
+        return None
 
 class RoleChecker:
     def __init__(self, allowed_roles: list[str]):

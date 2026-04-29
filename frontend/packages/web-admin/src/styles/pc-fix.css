@@ -1,0 +1,107 @@
+/* PC 端样式优化 - 让 Vant 在宽屏上更舒适 */
+@media (min-width: 768px) {
+  body {
+    background-color: #f5f7fa;
+  }
+
+  /* 限制主要内容区域宽度并居中 */
+  .van-nav-bar,
+  .van-tabbar,
+  .van-tabs,
+  .van-list,
+  .van-pull-refresh,
+  .van-cell-group,
+  .van-form,
+  .van-dropdown-menu,
+  .task-management,
+  .notes-page {
+    max-width: 800px;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  /* 卡片、列表项增加圆角和阴影 */
+  .van-cell {
+    border-radius: 12px;
+    margin: 8px 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    background-color: #fff;
+  }
+
+  .van-cell-group {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+
+  /* 导航栏 */
+  .van-nav-bar {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    background-color: #fff;
+    border-radius: 0 0 12px 12px;
+  }
+
+  .van-button {
+    border-radius: 24px;
+  }
+
+  /* 关键修改：将底部弹出层改为居中模态框 */
+  .van-popup--bottom,
+  .van-popup--round.van-popup--bottom {
+    top: 50% !important;
+    left: 50% !important;
+    bottom: auto !important;
+    right: auto !important;
+    transform: translate(-50%, -50%) !important;
+    max-width: 600px !important;
+    width: 90% !important;
+    border-radius: 16px !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+  }
+
+  /* 确保弹窗内部内容不溢出 */
+  .van-popup__content {
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  /* 居中普通弹窗 */
+  .van-popup--center {
+    max-width: 500px;
+    width: 90%;
+  }
+
+  /* 卡片组件 */
+  .van-card {
+    margin: 8px 12px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+
+  /* 标签栏 */
+  .van-tabs__nav {
+    justify-content: center;
+  }
+  .van-tab {
+    flex: none;
+    padding: 0 16px;
+  }
+
+  /* 下拉菜单 */
+  .van-dropdown-menu__bar {
+    box-shadow: none;
+    background-color: transparent;
+  }
+
+  /* 搜索框 */
+  .van-search {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  /* 浮动按钮 */
+  .van-floating-bubble {
+    right: calc(50% - 350px);
+  }
+}

@@ -18,7 +18,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { showToast } from 'vant'
 
 const username = ref('')
@@ -26,13 +26,19 @@ const password = ref('')
 const loading = ref(false)
 const authStore = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 
 const onSubmit = async () => {
   loading.value = true
   try {
     await authStore.login(username.value, password.value)
     showToast('登录成功')
-    router.push('/')
+    const redirect = route.query.redirect as string
+    if (redirect) {
+      router.push(redirect)
+    } else {
+      router.push('/')
+    }
   } catch (e) {
     showToast('登录失败')
   } finally {
@@ -42,5 +48,13 @@ const onSubmit = async () => {
 </script>
 
 <style scoped>
-.login-container { padding-top: 100px; }
+.login-container {
+  padding-top: 100px;
+}
+/* PC 端额外优化 */
+@media (min-width: 768px) {
+  .login-container {
+    padding-top: 20vh;
+  }
+}
 </style>

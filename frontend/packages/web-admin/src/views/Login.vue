@@ -29,7 +29,7 @@ const onSubmit = async () => {
   try {
     await authStore.login(username.value, password.value)
     showToast('登录成功')
-    router.push('/')
+    router.push('/tasks')   // 直接跳转到任务管理页
   } catch {
     showToast('登录失败')
   } finally {

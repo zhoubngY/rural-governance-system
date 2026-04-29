@@ -1,20 +1,143 @@
 <template>
-  <router-view />
+  <div class="app-container">
+    <!-- 顶部用户栏 -->
+    <div class="user-bar">
+      <div class="logo">村民服务</div>
+      <div class="user-actions">
+        <template v-if="isLoggedIn">
+          <span class="username">{{ authStore.user?.full_name || authStore.user?.username }}</span>
+          <van-button size="small" type="danger" @click="logout">退出</van-button>
+        </template>
+        <template v-else>
+          <van-button size="small" type="primary" @click="$router.push('/login')">登录</van-button>
+          <van-button size="small" type="default" @click="$router.push('/register')">注册</van-button>
+        </template>
+      </div>
+    </div>
+
+    <!-- 主要内容区域 -->
+    <div class="main-content">
+      <router-view />
+    </div>
+
+    <!-- 底部 Tabbar（六个菜单） -->
+    <van-tabbar v-model="activeTab" active-color="#1989fa" fixed placeholder>
+      <van-tabbar-item v-for="item in menuItems" :key="item.key" :name="item.path" :icon="item.icon">
+        {{ item.title }}
+      </van-tabbar-item>
+    </van-tabbar>
+  </div>
 </template>
 
-<style>
-/* 桌面端优化 */
-@media (min-width: 768px) {
-  body {
-    background-color: #f5f5f5;
+<script setup lang="ts">
+import { ref, watch, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { showToast } from 'vant'
+
+const router = useRouter()
+const route = useRoute()
+const authStore = useAuthStore()
+
+const isLoggedIn = computed(() => authStore.isLoggedIn)
+
+const menuItems = [
+  { key: 'history', title: '大事记', icon: 'clock-o', path: '/history' },
+  { key: 'policy', title: '政务公开', icon: 'bullhorn-o', path: '/policy' },
+  { key: 'notice', title: '通知', icon: 'bell-o', path: '/notice' },
+  { key: 'guide', title: '办事指南', icon: 'guide-o', path: '/guide' },
+  { key: 'consult', title: '在线咨询', icon: 'chat-o', path: '/consult' },
+  { key: 'apply', title: '我要申请', icon: 'apply', path: '/apply' }, // 新增
+]
+
+const activeTab = ref(route.path)
+
+// 路由变化时同步高亮
+watch(() => route.path, (newPath) => {
+  const mainPaths = menuItems.map(i => i.path)
+  if (mainPaths.includes(newPath)) {
+    activeTab.value = newPath
+  } else if (newPath.startsWith('/policy/')) {
+    activeTab.value = '/policy'
+  } else if (newPath.startsWith('/apply/')) {
+    activeTab.value = '/apply'
   }
-  #app {
-    max-width: 500px;
-    margin: 0 auto;
-    background-color: #fff;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
-    min-height: 100vh;
+}, { immediate: true })
+
+watch(activeTab, (newPath) => {
+  if (newPath !== route.path) {
+    router.push(newPath)
+  }
+})
+
+const logout = () => {
+  authStore.logout()
+  router.push('/login')
+  showToast('已退出登录')
+}
+</script>
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body {
+  background-color: #f5f5f5;
+}
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+.user-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background-color: #fff;
+  border-bottom: 1px solid #ebebeb;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+}
+.logo {
+  font-size: 18px;
+  font-weight: bold;
+}
+.user-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.username {
+  font-size: 14px;
+  color: #666;
+}
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  margin-top: 56px;      /* 顶部栏高度 */
+  margin-bottom: 50px;   /* 底部栏高度 */
+}
+/* PC端优化 */
+@media (min-width: 768px) {
+  .user-bar {
+    max-width: 1200px;
+    left: 50%;
+    transform: translateX(-50%);
+    right: auto;
+    width: 100%;
+    border-radius: 0 0 12px 12px;
+  }
+  .main-content {
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
   }
 }
 </style>
-
