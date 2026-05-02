@@ -30,21 +30,22 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
       POSTGRES_DB: ${POSTGRES_DB:-rural_gov}
       NLP_SERVICE_URL: http://nlp-service:8001
+      # SECRET_KEY: your-secret-key-for-jwt   # 添加这一行，与 config.py 中默认值保持一致或自定义
     volumes:
       - ./backend/uploads:/app/uploads
     depends_on:
       db:
         condition: service_healthy
 
-  nlp-service:
-    build: ./nlp-service
-    container_name: rural_gov_nlp
-    restart: unless-stopped
-    ports:
-      - "8001:8001"
-    volumes:
-      - ./nlp-service/data:/app/data
-      - ./nlp-service/models_store:/app/models_store
+  # nlp-service:
+  #   build: ./nlp-service
+  #   container_name: rural_gov_nlp
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8001:8001"
+  #   volumes:
+  #     - ./nlp-service/data:/app/data
+  #     - ./nlp-service/models_store:/app/models_store
 
 volumes:
   postgres_data:

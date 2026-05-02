@@ -15,13 +15,20 @@
     </div>
 
     <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
-      <van-list v-model:loading="loading" :finished="finished" finished-text="没有更多了" @load="loadMore">
+      <van-list
+        v-model:loading="loading"
+        :finished="finished"
+        finished-text="没有更多了"
+        @load="loadMore"
+        :immediate-check="false"
+      >
         <TaskCard
           v-for="task in tasks"
           :key="task.id"
           :task="task"
           @click="viewDetail(task)"
           @status-change="handleStatusChange"
+          @delete="handleDeleteTask"
         />
       </van-list>
     </van-pull-refresh>
@@ -43,11 +50,11 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { showToast } from 'vant'
-import { getTasks, assignTask, startTask, completeTask, type Task } from '@/api/tasks'
-import apiClient from '@shared/api/client'
+import { getTasks, assignTask, startTask, completeTask, deleteTask, type Task } from '@/api/tasks'
+import request from '@/api/client'
 import TaskCard from '@/components/TaskCard.vue'
 import TaskForm from '@/components/TaskForm.vue'
-import TaskDetail from '@/views/TaskDetail.vue'   // 注意从 views 导入
+import TaskDetail from '@/views/TaskDetail.vue'
 
 const tasks = ref<Task[]>([])
 const loading = ref(false)
@@ -79,31 +86,68 @@ const assignUserOptions = ref<{ text: string; value: number }[]>([])
 
 const loadAssignUsers = async () => {
   try {
-    const res = await apiClient.get('/users/')
-    assignUserOptions.value = res.data
+    const res = await request.get('/users')
+    assignUserOptions.value = (Array.isArray(res) ? res : [])
       .filter((u: any) => u.role === 'staff' || u.role === 'admin')
-      .map((u: any) => ({ text: u.full_name || u.username, value: u.id }))
+      .map((u: any) => ({ text: u.real_name || u.username, value: u.id }))
   } catch (err) {
     console.error('加载用户失败', err)
   }
 }
 
+// 增加安全计数器，防止无限循环
+let requestCount = 0
+const MAX_REQUESTS = 50
+
 const loadMore = async () => {
+  // 条件检查
+  if (loading.value || finished.value) return
+  if (requestCount >= MAX_REQUESTS) {
+    finished.value = true
+    loading.value = false
+    return
+  }
+  
   loading.value = true
+  requestCount++
   try {
     const params: any = { skip: page.value * limit, limit }
     if (filters.status) params.status = filters.status
     if (filters.priority) params.priority = filters.priority
     if (searchKeyword.value) params.title_contains = searchKeyword.value
     const res = await getTasks(params)
-    const newTasks = res.data
-    if (newTasks.length < limit) finished.value = true
-    tasks.value.push(...newTasks)
-    page.value++
+    const newTasks = Array.isArray(res) ? res : []
+    
+    if (newTasks.length === 0) {
+      // 无新数据，结束
+      finished.value = true
+    } else {
+      // 去重，防止重复添加（基于 id）
+      const existingIds = new Set(tasks.value.map(t => t.id))
+      const uniqueNew = newTasks.filter(t => !existingIds.has(t.id))
+      if (uniqueNew.length === 0) {
+        // 没有增加新任务，说明已经到底了
+        finished.value = true
+      } else {
+        tasks.value.push(...uniqueNew)
+        if (uniqueNew.length < limit) {
+          // 不足一页，结束
+          finished.value = true
+        } else {
+          page.value++
+        }
+      }
+    }
   } catch (err) {
+    console.error(err)
     showToast('加载失败')
+    finished.value = true
   } finally {
     loading.value = false
+    // 如果已经 finished，确保 loading 不再被触发
+    if (finished.value) {
+      loading.value = false
+    }
   }
 }
 
@@ -111,8 +155,12 @@ const refreshList = () => {
   page.value = 0
   tasks.value = []
   finished.value = false
+  requestCount = 0
   loading.value = false
-  loadMore()
+  // 延迟一下再触发加载，避免重复
+  setTimeout(() => {
+    loadMore()
+  }, 50)
 }
 
 const onRefresh = () => {
@@ -165,6 +213,17 @@ const handleStatusChange = async (taskId: number, newStatus: string) => {
   }
 }
 
+const handleDeleteTask = async (taskId: number) => {
+  try {
+    await deleteTask(taskId)
+    showToast('删除成功')
+    refreshList()
+  } catch (err: any) {
+    const msg = err.response?.data?.detail || err.message || '删除失败'
+    showToast(msg)
+  }
+}
+
 const onAssignConfirm = async (value: any) => {
   let userId: number | undefined
   if (Array.isArray(value)) {
@@ -195,7 +254,6 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-/* 保持原有样式不变 */
 .task-management {
   padding-bottom: 20px;
   .filter-bar {
@@ -214,5 +272,17 @@ onMounted(() => {
       flex: 2;
     }
   }
+}
+</style>
+
+<style lang="scss">
+.van-dropdown-item__title {
+  color: #323233 !important;
+}
+.van-dropdown-menu__bar {
+  color: #323233 !important;
+}
+.van-dropdown-item__option {
+  color: #323233 !important;
 }
 </style>

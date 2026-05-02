@@ -59,7 +59,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { showToast, showConfirmDialog } from 'vant'
-import apiClient from '@shared/api/client'
+import request from '@/api/client'
 
 interface Note {
   id: number
@@ -120,8 +120,8 @@ const loadMore = async () => {
     if (activeType.value !== 'all') {
       params.type = activeType.value
     }
-    const res = await apiClient.get<Note[]>('/notes/', { params })
-    const newNotes = res.data
+    const res = await request.get('/notes', { params })
+    const newNotes = Array.isArray(res) ? res : res.data || []
     if (newNotes.length < pageSize) finished.value = true
     notes.value.push(...newNotes)
     page.value++
@@ -166,7 +166,7 @@ const deleteNote = async () => {
   if (!currentNote.value) return
   try {
     await showConfirmDialog({ title: '确认删除', message: '删除后不可恢复' })
-    await apiClient.delete(`/notes/${currentNote.value.id}`)
+    await request.delete(`/notes/${currentNote.value.id}`)
     showToast('删除成功')
     showDetail.value = false
     loadNotes()
@@ -190,13 +190,13 @@ const onSubmit = async () => {
   submitting.value = true
   try {
     if (editingId.value) {
-      await apiClient.put(`/notes/${editingId.value}`, {
+      await request.put(`/notes/${editingId.value}`, {
         title: form.value.title,
         content: form.value.content,
       })
       showToast('更新成功')
     } else {
-      await apiClient.post('/notes/', {
+      await request.post('/notes', {
         type: form.value.type,
         title: form.value.title,
         content: form.value.content,

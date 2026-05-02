@@ -13,10 +13,10 @@ class Task(Base):
     due_date = Column(String(50), nullable=True)
     extra_data = Column(JSON, default=dict)
     status = Column(String(20), default="pending")
-    creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    assignee_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    creator_id = Column(Integer, ForeignKey("tenant_1.users.id"), nullable=False)
+    # 移除 assignee_id 列，完全使用 extra_data.assignee_ids
     assignee_ids = Column(JSON, default=list)  # 多负责人ID数组
-    assigned_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    assigned_by_id = Column(Integer, ForeignKey("tenant_1.users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     assigned_at = Column(DateTime(timezone=True), nullable=True)
     started_at = Column(DateTime(timezone=True), nullable=True)

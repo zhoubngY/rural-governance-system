@@ -6,6 +6,13 @@ import Notes from '../views/Notes.vue'
 import PolicyManagement from '../views/PolicyManagement.vue'
 import UserManagement from '../views/UserManagement.vue'
 
+// 新增管理页面
+import MemorialManagement from '../views/MemorialManagement.vue'
+import NoticeManagement from '../views/NoticeManagement.vue'
+import GuideManagement from '../views/GuideManagement.vue'
+import ApplicationManagement from '../views/ApplicationManagement.vue'
+import ConsultationManagement from '../views/ConsultationManagement.vue'
+
 const routes = [
   { path: '/login', component: Login },
   { path: '/tasks', component: TaskManagement, meta: { requiresAuth: true } },
@@ -13,14 +20,13 @@ const routes = [
   { path: '/notes', component: Notes, meta: { requiresAuth: true } },
   { path: '/policies', component: PolicyManagement, meta: { requiresAuth: true } },
   { path: '/users', component: UserManagement, meta: { requiresAuth: true } },
-  { 
-    path: '/logout', 
-    beforeEnter: () => { 
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('village_id')
-      return '/login' 
-    } 
-  },
+  // 新增路由
+  { path: '/memorials', component: MemorialManagement, meta: { requiresAuth: true } },
+  { path: '/notices', component: NoticeManagement, meta: { requiresAuth: true } },
+  { path: '/guides', component: GuideManagement, meta: { requiresAuth: true } },
+  { path: '/applications', component: ApplicationManagement, meta: { requiresAuth: true } },
+  { path: '/consultations', component: ConsultationManagement, meta: { requiresAuth: true } },
+  // 移除独立的 /logout 路由，退出登录逻辑已在 App.vue 中处理
   { path: '/', redirect: '/tasks' },
   { path: '/:pathMatch(.*)*', redirect: '/tasks' }
 ]
@@ -31,7 +37,7 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem('access_token')   // 关键修改：从 'token' 改为 'access_token'
+  const token = localStorage.getItem('access_token')
   if (to.meta.requiresAuth && !token) {
     next('/login')
   } else {

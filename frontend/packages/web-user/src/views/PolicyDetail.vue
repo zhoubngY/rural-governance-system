@@ -1,6 +1,6 @@
 <template>
   <div class="policy-detail">
-    <van-nav-bar :title="policy?.title || '政策详情'" left-arrow @click-left="$router.back()" fixed placeholder />
+    <van-nav-bar :title="policy?.title || '政务详情'" left-arrow @click-left="$router.back()" fixed placeholder />
     <div v-if="policy" class="content">
       <h3>{{ policy.title }}</h3>
       <p class="category">{{ policy.category }}</p>
@@ -27,7 +27,7 @@ const fetchPolicy = async () => {
     const res = await apiClient.get(`/policy/${id}`)
     policy.value = res.data
   } catch (err) {
-    showToast('加载政策详情失败')
+    showToast('加载政务详情失败')
     router.back()
   }
 }

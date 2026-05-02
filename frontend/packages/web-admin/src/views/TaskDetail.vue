@@ -1,9 +1,8 @@
 <template>
   <div class="task-detail">
     <van-nav-bar :title="task?.title || '任务详情'" left-text="返回" @click-left="$emit('close')" />
-    <van-loading v-if="!task" class="loading" />
-
-    <div v-else>
+    <van-loading v-if="loading" class="loading" />
+    <div v-else-if="task">
       <!-- 基本信息 -->
       <van-cell-group title="基本信息">
         <van-cell label="标题" :value="task.title" />
@@ -63,6 +62,7 @@
         <div v-if="!task.attachments?.length" class="empty-tip">暂无附件</div>
       </van-cell-group>
     </div>
+    <div v-else class="error-tip">加载失败或无数据</div>
   </div>
 </template>
 
@@ -70,39 +70,39 @@
 import { ref, onMounted, computed } from 'vue'
 import { showToast, showConfirmDialog, showLoadingToast, closeToast } from 'vant'
 import { getTaskDetail, updateAssignment, uploadAttachment, deleteAttachment, getAttachmentDownloadUrl, type Task, type Assignment } from '@/api/tasks'
-import apiClient from '@shared/api/client'
 
 const props = defineProps<{ taskId: number }>()
 const emit = defineEmits(['updated', 'close'])
 
 const task = ref<Task | null>(null)
+const loading = ref(true)
 const activeAssign = ref<number[]>([])
 const uploadFileList = ref<any[]>([])
-const currentUser = ref<any>(null) // 从 store 获取当前用户
-
-// 获取当前登录用户（简化：从 localStorage 或 store 获取，这里提供一个方法从 api 获取）
-const fetchCurrentUser = async () => {
-  try {
-    const res = await apiClient.get('/users/me')
-    currentUser.value = res.data
-  } catch (err) {
-    console.error('获取当前用户失败', err)
-  }
-}
+// 模拟当前用户（admin）
+const currentUser = ref({ id: 1, role: 'admin', username: 'admin' })
 
 const loadTask = async () => {
-  const toast = showLoadingToast({ message: '加载中...', forbidClick: true })
+  loading.value = true
   try {
     const res = await getTaskDetail(props.taskId)
-    task.value = res.data
+    console.log('getTaskDetail response:', res)
+    // 根据实际返回结构赋值：res 可能是 Task 对象，也可能是 { data: Task }
+    if (res && typeof res === 'object' && 'data' in res) {
+      task.value = res.data
+    } else {
+      task.value = res as Task
+    }
+    if (!task.value) {
+      throw new Error('返回数据为空')
+    }
   } catch (err: any) {
-    showToast(err.response?.data?.detail || '加载失败')
+    console.error(err)
+    showToast(err.response?.data?.detail || err.message || '加载失败')
   } finally {
-    closeToast()
+    loading.value = false
   }
 }
 
-// 状态映射
 const getStatusText = (status: string) => {
   const map: Record<string, string> = {
     pending: '待处理',
@@ -133,10 +133,8 @@ const statusOptions = [
   { text: '已取消', value: 'cancelled' },
 ]
 
-// 权限判断
 const canEditAssignment = (assign: Assignment) => {
   if (!currentUser.value) return false
-  // 管理员或任务创建者或负责人本人
   if (currentUser.value.role === 'admin') return true
   if (task.value?.creator_id === currentUser.value.id) return true
   return assign.user_id === currentUser.value.id
@@ -149,14 +147,12 @@ const canUpload = computed(() => {
 
 const canDeleteAttachment = computed(() => canUpload.value)
 
-// 更新指派状态
 const updateAssignmentStatus = async (assignmentId: number, newStatus: string) => {
   const assign = task.value?.assignments?.find(a => a.id === assignmentId)
   if (!assign) return
   try {
     await updateAssignment(assignmentId, { status: newStatus, feedback: assign.feedback })
     showToast('更新成功')
-    // 刷新任务
     await loadTask()
     emit('updated')
   } catch (err: any) {
@@ -164,14 +160,12 @@ const updateAssignmentStatus = async (assignmentId: number, newStatus: string) =
   }
 }
 
-// 上传附件
 const handleUpload = async (file: any) => {
   const toast = showLoadingToast({ message: '上传中...', forbidClick: true })
   try {
     await uploadAttachment(props.taskId, file.file)
     showToast('上传成功')
     await loadTask()
-    // 清空 uploader 列表
     uploadFileList.value = []
     emit('updated')
   } catch (err: any) {
@@ -181,19 +175,16 @@ const handleUpload = async (file: any) => {
   }
 }
 
-// 下载附件
 const downloadAttachment = (attachmentId: number) => {
-  // 直接打开链接，或使用 a 标签下载
   const url = getAttachmentDownloadUrl(attachmentId)
   const a = document.createElement('a')
   a.href = url
-  a.download = '' // 触发浏览器下载行为
+  a.download = ''
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
 }
 
-// 删除附件
 const deleteAttachment = async (attachmentId: number) => {
   try {
     await showConfirmDialog({ title: '确认删除', message: '删除后不可恢复' })
@@ -202,7 +193,7 @@ const deleteAttachment = async (attachmentId: number) => {
     await loadTask()
     emit('updated')
   } catch (err) {
-    // 用户取消或错误
+    // 用户取消
   }
 }
 
@@ -213,9 +204,8 @@ const formatFileSize = (bytes?: number) => {
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
 }
 
-onMounted(async () => {
-  await fetchCurrentUser()
-  await loadTask()
+onMounted(() => {
+  loadTask()
 })
 </script>
 
@@ -232,6 +222,11 @@ onMounted(async () => {
 .empty-tip {
   text-align: center;
   color: #999;
+  padding: 20px;
+}
+.error-tip {
+  text-align: center;
+  color: #f44;
   padding: 20px;
 }
 .delete-icon {

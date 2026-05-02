@@ -11,11 +11,11 @@
     </van-tabs>
 
     <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
-      <van-list v-model:loading="loading" :finished="finished" finished-text="没有更多了" @load="onLoad">
+      <van-list v-model:loading="loading" :finished="finished" finished-text="没有更多了" @load="onLoad" :immediate-check="false">
         <van-cell
           v-for="user in filteredUsers"
           :key="user.id"
-          :title="user.full_name"
+          :title="user.real_name"
           :label="`${roleText(user.role)} | ${user.username} | 村庄 ${user.village_id}`"
           @click="editUser(user)"
         >
@@ -36,9 +36,8 @@
         <van-cell-group inset>
           <van-field v-model="form.username" name="用户名" label="用户名" :rules="[{ required: true }]" :disabled="!!editingId" />
           <van-field v-if="!editingId" v-model="form.password" type="password" name="密码" label="密码" :rules="[{ required: !editingId }]" />
-          <van-field v-model="form.full_name" name="姓名" label="姓名" />
+          <van-field v-model="form.real_name" name="姓名" label="姓名" />
           <van-field v-model="form.village_id" name="村庄ID" label="村庄ID" type="number" :rules="[{ required: true }]" :disabled="!!editingId" />
-          <!-- 角色下拉选择 -->
           <van-field name="角色" label="角色" :rules="[{ required: true }]">
             <template #input>
               <van-radio-group v-model="form.role" direction="horizontal">
@@ -51,7 +50,6 @@
         </van-cell-group>
         <div style="margin: 16px">
           <van-button round block type="primary" native-type="submit" :loading="submitting">保存</van-button>
-          <!-- 编辑时显示重置密码按钮 -->
           <van-button v-if="editingId" round block type="default" style="margin-top: 10px" @click="openResetPassword">重置密码</van-button>
         </div>
       </van-form>
@@ -65,10 +63,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { showToast, showConfirmDialog } from 'vant'
-import apiClient from '@shared/api/client'
-import type { User } from '@shared/types'
+import request from '@/api/client'
+
+interface User {
+  id: number
+  username: string
+  real_name?: string
+  role: string
+  village_id: number
+}
 
 const users = ref<User[]>([])
 const loading = ref(false)
@@ -82,10 +87,10 @@ const showResetPwd = ref(false)
 const newPassword = ref('')
 const resetTargetId = ref<number | null>(null)
 
-const form = reactive({
+const form = ref({
   username: '',
   password: '',
-  full_name: '',
+  real_name: '',
   village_id: 1,
   role: 'staff'
 })
@@ -102,10 +107,11 @@ const roleText = (role: string) => {
 
 const fetchUsers = async () => {
   try {
-    const res = await apiClient.get('/users/')
-    users.value = res.data
+    const res = await request.get('/users')
+    users.value = Array.isArray(res) ? res : (res.data || [])
     finished.value = true
-  } catch {
+  } catch (err) {
+    console.error(err)
     showToast('加载失败')
   } finally {
     loading.value = false
@@ -114,6 +120,7 @@ const fetchUsers = async () => {
 }
 
 const onLoad = () => {
+  if (loading.value) return
   loading.value = true
   fetchUsers()
 }
@@ -125,25 +132,21 @@ const onRefresh = () => {
   fetchUsers()
 }
 
-const onRoleChange = () => {}
-
 const openCreate = () => {
   editingId.value = null
-  form.username = ''
-  form.password = ''
-  form.full_name = ''
-  form.village_id = 1
-  form.role = 'staff'
+  form.value = { username: '', password: '', real_name: '', village_id: 1, role: 'staff' }
   showForm.value = true
 }
 
 const editUser = (user: User) => {
   editingId.value = user.id
-  form.username = user.username
-  form.password = ''
-  form.full_name = user.full_name || ''
-  form.village_id = user.village_id
-  form.role = user.role
+  form.value = {
+    username: user.username,
+    password: '',
+    real_name: user.real_name || '',
+    village_id: user.village_id,
+    role: user.role,
+  }
   showForm.value = true
 }
 
@@ -151,13 +154,19 @@ const onSubmit = async () => {
   submitting.value = true
   try {
     if (editingId.value) {
-      await apiClient.put(`/users/${editingId.value}`, {
-        full_name: form.full_name,
-        role: form.role
+      await request.put(`/users/${editingId.value}`, {
+        real_name: form.value.real_name,
+        role: form.value.role,
       })
       showToast('更新成功')
     } else {
-      await apiClient.post('/users/', form)
+      await request.post('/users', {
+        username: form.value.username,
+        password: form.value.password,
+        real_name: form.value.real_name,
+        village_id: form.value.village_id,
+        role: form.value.role,
+      })
       showToast('创建成功')
     }
     showForm.value = false
@@ -172,10 +181,12 @@ const onSubmit = async () => {
 const deleteUser = async (id: number) => {
   try {
     await showConfirmDialog({ title: '确认删除', message: '删除后不可恢复' })
-    await apiClient.delete(`/users/${id}`)
+    await request.delete(`/users/${id}`)
     showToast('删除成功')
     onRefresh()
-  } catch {}
+  } catch (err) {
+    // 用户取消或错误
+  }
 }
 
 const openResetPassword = () => {
@@ -190,7 +201,7 @@ const confirmResetPassword = async () => {
     return
   }
   try {
-    await apiClient.post(`/users/${resetTargetId.value}/reset-password`, {
+    await request.post(`/users/${resetTargetId.value}/reset-password`, {
       new_password: newPassword.value
     })
     showToast('密码已重置')
@@ -199,4 +210,8 @@ const confirmResetPassword = async () => {
     showToast(e.response?.data?.detail || '操作失败')
   }
 }
+
+onMounted(() => {
+  onLoad()
+})
 </script>

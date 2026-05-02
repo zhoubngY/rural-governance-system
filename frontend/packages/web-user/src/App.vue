@@ -4,6 +4,14 @@
     <div class="user-bar">
       <div class="logo">村民服务</div>
       <div class="user-actions">
+        <!-- 新增：在线咨询按钮 -->
+        <van-button size="small" type="primary" plain @click="$router.push('/consult')">
+          在线咨询
+        </van-button>
+        <!-- 新增：我要申请按钮 -->
+        <van-button size="small" type="warning" plain @click="$router.push('/apply')">
+          我要申请
+        </van-button>
         <template v-if="isLoggedIn">
           <span class="username">{{ authStore.user?.full_name || authStore.user?.username }}</span>
           <van-button size="small" type="danger" @click="logout">退出</van-button>
@@ -20,7 +28,7 @@
       <router-view />
     </div>
 
-    <!-- 底部 Tabbar（六个菜单） -->
+    <!-- 底部 Tabbar（四个主菜单） -->
     <van-tabbar v-model="activeTab" active-color="#1989fa" fixed placeholder>
       <van-tabbar-item v-for="item in menuItems" :key="item.key" :name="item.path" :icon="item.icon">
         {{ item.title }}
@@ -44,10 +52,8 @@ const isLoggedIn = computed(() => authStore.isLoggedIn)
 const menuItems = [
   { key: 'history', title: '大事记', icon: 'clock-o', path: '/history' },
   { key: 'policy', title: '政务公开', icon: 'bullhorn-o', path: '/policy' },
-  { key: 'notice', title: '通知', icon: 'bell-o', path: '/notice' },
   { key: 'guide', title: '办事指南', icon: 'guide-o', path: '/guide' },
-  { key: 'consult', title: '在线咨询', icon: 'chat-o', path: '/consult' },
-  { key: 'apply', title: '我要申请', icon: 'apply', path: '/apply' }, // 新增
+  { key: 'notice', title: '通知', icon: 'bell-o', path: '/notice' },
 ]
 
 const activeTab = ref(route.path)
@@ -59,8 +65,6 @@ watch(() => route.path, (newPath) => {
     activeTab.value = newPath
   } else if (newPath.startsWith('/policy/')) {
     activeTab.value = '/policy'
-  } else if (newPath.startsWith('/apply/')) {
-    activeTab.value = '/apply'
   }
 }, { immediate: true })
 
@@ -112,6 +116,7 @@ body {
   display: flex;
   gap: 12px;
   align-items: center;
+  flex-wrap: wrap;
 }
 .username {
   font-size: 14px;

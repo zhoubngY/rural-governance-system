@@ -1,93 +1,113 @@
 <template>
-  <div>
-    <van-nav-bar title="政策管理" />
-    <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
-      <van-list v-model:loading="loading" :finished="finished" finished-text="没有更多了" @load="onLoad">
-        <van-swipe-cell v-for="policy in policies" :key="policy.id">
-          <van-cell :title="policy.title" :label="policy.category" @click="editPolicy(policy)" />
-          <template #right>
-            <van-button square type="danger" text="删除" @click="deletePolicy(policy.id)" />
-          </template>
-        </van-swipe-cell>
-      </van-list>
-    </van-pull-refresh>
-    <van-floating-bubble icon="plus" @click="showCreate = true" />
-    <van-popup v-model:show="showCreate" round position="bottom" :style="{ height: '60%' }">
-      <van-form @submit="onCreate">
-        <van-cell-group inset>
-          <van-field v-model="form.title" name="标题" label="标题" :rules="[{ required: true }]" />
-          <van-field v-model="form.category" name="分类" label="分类" />
-          <van-field v-model="form.content" name="内容" label="内容" type="textarea" rows="5" />
-        </van-cell-group>
-        <div style="margin: 16px">
-          <van-button round block type="primary" native-type="submit" :loading="submitting">保存</van-button>
-        </div>
-      </van-form>
-    </van-popup>
+  <div class="management-container">
+    <div class="header">
+      <h2>政务管理</h2>
+      <el-button type="primary" @click="openDialog()">发布政务</el-button>
+    </div>
+    <el-table :data="list" border stripe>
+      <el-table-column prop="title" label="标题" min-width="200" />
+      <el-table-column prop="category" label="分类" width="120" />
+      <el-table-column prop="published_at" label="发布时间" width="180" />
+      <el-table-column label="操作" width="150">
+        <template #default="scope">
+          <el-button link type="primary" @click="openDialog(scope.row)">编辑</el-button>
+          <el-button link type="danger" @click="handleDelete(scope.row.id)">删除</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+
+    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑政务' : '发布政务'" width="600px">
+      <el-form :model="form" label-width="100px">
+        <el-form-item label="标题" required>
+          <el-input v-model="form.title" />
+        </el-form-item>
+        <el-form-item label="分类">
+          <el-input v-model="form.category" />
+        </el-form-item>
+        <el-form-item label="内容" required>
+          <el-input type="textarea" v-model="form.content" rows="5" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitForm">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { showToast, showConfirmDialog } from 'vant'
-import apiClient from '@shared/api/client'
-import type { Policy } from '@shared/types'
+import { ref, onMounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import request from '@/api/client'
 
-const policies = ref<Policy[]>([])
-const loading = ref(false)
-const finished = ref(false)
-const refreshing = ref(false)
-const showCreate = ref(false)
-const submitting = ref(false)
-const editingId = ref<number | null>(null)
-const form = reactive({ title: '', category: '', content: '' })
+const list = ref<any[]>([])
+const dialogVisible = ref(false)
+const form = ref({ id: 0, title: '', content: '', category: '' })
 
-const fetchPolicies = async () => {
+const fetchData = async () => {
   try {
-    const res = await apiClient.get('/policy/')
-    policies.value = res.data
-    finished.value = true
-  } catch { showToast('加载失败') }
-  finally { loading.value = false; refreshing.value = false }
+    const res = await request.get('/policies')  // 无斜杠
+    list.value = Array.isArray(res) ? res : (res.data || [])
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('加载数据失败')
+  }
 }
 
-const onLoad = () => { loading.value = true; fetchPolicies() }
-const onRefresh = () => { refreshing.value = true; policies.value = []; finished.value = false; fetchPolicies() }
+const openDialog = (row?: any) => {
+  if (row) {
+    form.value = { ...row }
+  } else {
+    form.value = { id: 0, title: '', content: '', category: '' }
+  }
+  dialogVisible.value = true
+}
 
-const onCreate = async () => {
-  submitting.value = true
+const submitForm = async () => {
+  if (!form.value.title || !form.value.content) {
+    ElMessage.warning('请填写标题和内容')
+    return
+  }
   try {
-    if (editingId.value) {
-      await apiClient.put(`/policy/${editingId.value}`, form)
-      showToast('更新成功')
+    if (form.value.id) {
+      await request.put(`/policies/${form.value.id}`, form.value)
+      ElMessage.success('更新成功')
     } else {
-      await apiClient.post('/policy/', form)
-      showToast('创建成功')
+      await request.post('/policies', form.value)  // 无斜杠
+      ElMessage.success('发布成功')
     }
-    showCreate.value = false
-    editingId.value = null
-    form.title = form.category = form.content = ''
-    onRefresh()
-  } catch { showToast('操作失败') }
-  finally { submitting.value = false }
+    dialogVisible.value = false
+    fetchData()
+  } catch (error) {
+    ElMessage.error('操作失败')
+  }
 }
 
-const editPolicy = (policy: Policy) => {
-  editingId.value = policy.id
-  form.title = policy.title
-  form.category = policy.category || ''
-  form.content = policy.content
-  showCreate.value = true
-}
-
-const deletePolicy = async (id: number) => {
+const handleDelete = async (id: number) => {
+  await ElMessageBox.confirm('确定删除吗？', '提示', { type: 'warning' })
   try {
-    await showConfirmDialog({ title: '确认删除', message: '删除后不可恢复' })
-    await apiClient.delete(`/policy/${id}`)
-    showToast('删除成功')
-    onRefresh()
-  } catch { }
+    await request.delete(`/policies/${id}`)
+    ElMessage.success('删除成功')
+    fetchData()
+  } catch (error) {
+    ElMessage.error('删除失败')
+  }
 }
 
-fetchPolicies()
+onMounted(fetchData)
 </script>
+
+<style scoped>
+.management-container {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+</style>

@@ -5,7 +5,7 @@
       <van-cell title="任务管理" is-link to="/tasks" />
       <van-cell title="我的任务" is-link to="/my-tasks" />
       <van-cell title="工作笔记" is-link to="/notes" />
-      <van-cell title="政策管理" is-link to="/policies" v-if="user?.role === 'admin'" />
+      <van-cell title="政务管理" is-link to="/policies" v-if="user?.role === 'admin'" />
       <van-cell title="用户管理" is-link to="/users" v-if="user?.role === 'admin'" />
       <van-cell title="退出登录" @click="logout" />
     </van-cell-group>

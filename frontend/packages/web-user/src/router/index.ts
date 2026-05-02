@@ -16,7 +16,7 @@ const routes = [
   { path: '/register', component: () => import('@/views/Register.vue'), meta: { public: true } },
   
   // 默认重定向到政务公开
-  { path: '/', redirect: '/policy' },
+  { path: '/', redirect: '/history' },
 
   // 其他需要登录的页面（暂未使用，可留作扩展）
   { path: '/tasks', component: () => import('@/views/TaskList.vue'), meta: { requiresAuth: true } },

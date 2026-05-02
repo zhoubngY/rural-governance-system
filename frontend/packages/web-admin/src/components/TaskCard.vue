@@ -42,16 +42,25 @@
         >
           完成
         </van-button>
+        <van-button
+          size="small"
+          type="danger"
+          plain
+          @click.stop="confirmDelete"
+        >
+          删除
+        </van-button>
       </div>
     </template>
   </van-cell>
 </template>
 
 <script setup lang="ts">
+import { showConfirmDialog } from 'vant'
 import type { Task } from '@/api/tasks'
 
-defineProps<{ task: Task }>()
-const emit = defineEmits(['click', 'status-change'])
+const props = defineProps<{ task: Task }>()
+const emit = defineEmits(['click', 'status-change', 'delete'])
 
 const priorityLabel = (p: string) => p === 'urgent' ? '紧急' : '日常'
 const priorityType = (p: string) => p === 'urgent' ? 'danger' : 'success'
@@ -61,6 +70,11 @@ const statusLabel = (s: string) => {
   return map[s] || s
 }
 const formatDate = (date?: string) => date ? new Date(date).toLocaleDateString() : ''
+
+const confirmDelete = async () => {
+  await showConfirmDialog({ title: '确认删除', message: '删除后不可恢复' })
+  emit('delete', props.task.id)
+}
 </script>
 
 <style scoped>

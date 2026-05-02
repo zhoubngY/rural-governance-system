@@ -14,16 +14,16 @@ router = APIRouter(prefix="/tasks", tags=["tasks"])
 async def enrich_tasks_with_usernames(db: AsyncSession, tasks: List[Task]) -> List[Task]:
     user_ids = set()
     for t in tasks:
-        if t.assignee_id:
-            user_ids.add(t.assignee_id)
+        # 只使用 creator_id (因为 assignee_id 已废弃)
         user_ids.add(t.creator_id)
+        # 从 extra_data 中提取 assignee_ids 来获取负责人姓名（可选，暂不实现）
     if not user_ids:
         return tasks
     result = await db.execute(select(User).where(User.id.in_(user_ids)))
     users = {u.id: u for u in result.scalars().all()}
     for t in tasks:
-        t.assignee_name = users[t.assignee_id].full_name if t.assignee_id and t.assignee_id in users else None
-        t.creator_name = users[t.creator_id].full_name if t.creator_id in users else None
+        t.creator_name = users[t.creator_id].real_name if t.creator_id in users else None
+        t.assignee_name = None  # 暂时不处理多负责人显示
     return tasks
 
 @router.post("/", response_model=TaskInDB, status_code=status.HTTP_201_CREATED)
@@ -72,9 +72,8 @@ async def read_tasks(
     if current_user.role == "villager":
         tasks = await task_service.get_by_creator(db, creator_id=current_user.id)
     elif current_user.role == "staff":
-        tasks = await task_service.get_by_assignee_or_creator(
-            db, assignee_id=current_user.id, creator_id=current_user.id
-        )
+        # 注意：原逻辑使用了 assignee_id，现在改为从 extra_data 中查找，但为了快速恢复，暂时只返回创建的任务
+        tasks = await task_service.get_by_creator(db, creator_id=current_user.id)
     else:
         tasks = await task_service.get_multi(db)
     tasks = await enrich_tasks_with_usernames(db, tasks)
@@ -90,7 +89,8 @@ async def read_task(
     if current_user.role == "admin":
         pass
     elif current_user.role == "staff":
-        if task.creator_id != current_user.id and task.assignee_id != current_user.id:
+        # 临时：只允许创建者查看
+        if task.creator_id != current_user.id:
             raise HTTPException(status_code=403, detail="Not authorized")
     elif current_user.role == "villager" and task.creator_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized")

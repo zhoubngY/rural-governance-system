@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import apiClient from '@shared/api/client'
+import request from '@/api/client'   // 改为本地 client
 import type { User } from '@shared/types'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -8,33 +8,34 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const isLoggedIn = ref(!!token.value)
 
-  // 刷新时自动尝试获取用户信息
   async function initAuth() {
     if (token.value) {
       try {
         await fetchUser()
         isLoggedIn.value = true
       } catch {
-        // Token 无效，清除
         logout()
       }
     }
   }
 
   async function login(username: string, password: string) {
-    const formData = new FormData()
+    const formData = new URLSearchParams()   // 改为 URLSearchParams 更标准
     formData.append('username', username)
     formData.append('password', password)
-    const response = await apiClient.post('/auth/login', formData)
-    token.value = response.data.access_token
+    const res = await request.post('/auth/login', formData, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    })
+    // 注意：request 拦截器已返回 response.data，所以 res 就是 { access_token, token_type }
+    token.value = res.access_token
     localStorage.setItem('access_token', token.value)
     isLoggedIn.value = true
     await fetchUser()
   }
 
   async function fetchUser() {
-    const response = await apiClient.get('/users/me')
-    user.value = response.data
+    const res = await request.get('/users/me')
+    user.value = res
     localStorage.setItem('village_id', String(user.value?.village_id))
   }
 
@@ -46,7 +47,6 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('village_id')
   }
 
-  // 立即执行初始化
   initAuth()
 
   return { token, user, isLoggedIn, login, logout, fetchUser, initAuth }

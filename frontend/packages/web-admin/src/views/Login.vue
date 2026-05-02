@@ -1,37 +1,50 @@
 <template>
   <div class="login-container">
-    <van-form @submit="onSubmit">
-      <van-cell-group inset>
-        <van-field v-model="username" name="用户名" label="用户名" placeholder="用户名" :rules="[{ required: true }]" />
-        <van-field v-model="password" type="password" name="密码" label="密码" placeholder="密码" :rules="[{ required: true }]" />
-      </van-cell-group>
-      <div style="margin: 16px;">
-        <van-button round block type="primary" native-type="submit" :loading="loading">登录</van-button>
-      </div>
-    </van-form>
+    <el-card class="login-card">
+      <h2>管理后台登录</h2>
+      <el-form :model="form" :rules="rules" ref="formRef">
+        <el-form-item label="用户名" prop="username">
+          <el-input v-model="form.username" placeholder="请输入用户名" />
+        </el-form-item>
+        <el-form-item label="密码" prop="password">
+          <el-input type="password" v-model="form.password" placeholder="请输入密码" />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="onSubmit" :loading="loading">登录</el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useAuthStore } from '@/stores/auth'
+import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { showToast } from 'vant'
+import { ElMessage } from 'element-plus'
+import request from '@/api/client'
 
-const username = ref('')
-const password = ref('')
-const loading = ref(false)
-const authStore = useAuthStore()
 const router = useRouter()
+const loading = ref(false)
+const form = reactive({ username: 'admin', password: 'admin123' })
+const rules = {
+  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+  password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
+}
 
 const onSubmit = async () => {
   loading.value = true
   try {
-    await authStore.login(username.value, password.value)
-    showToast('登录成功')
-    router.push('/tasks')   // 直接跳转到任务管理页
-  } catch {
-    showToast('登录失败')
+    const formData = new URLSearchParams()
+    formData.append('username', form.username)
+    formData.append('password', form.password)
+    const res = await request.post('/auth/login', formData, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    })
+    localStorage.setItem('access_token', res.access_token)
+    ElMessage.success('登录成功')
+    router.push('/tasks')
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.detail || '登录失败')
   } finally {
     loading.value = false
   }
@@ -39,5 +52,19 @@ const onSubmit = async () => {
 </script>
 
 <style scoped>
-.login-container { padding-top: 100px; }
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: #f0f2f5;
+}
+.login-card {
+  width: 400px;
+  padding: 20px;
+}
+h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
 </style>

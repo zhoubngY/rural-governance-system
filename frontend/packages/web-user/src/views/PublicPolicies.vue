@@ -1,6 +1,6 @@
 <template>
   <div class="policy-list">
-    <van-nav-bar title="政策公开" fixed placeholder />
+    <van-nav-bar title="政务公开" fixed placeholder />
     <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
       <van-list v-model:loading="loading" :finished="finished" finished-text="没有更多了" @load="loadPolicies">
         <van-cell
@@ -73,7 +73,7 @@ const viewDetail = (policy: any) => {
 
 const handleAction = () => {
   if (!isLoggedIn.value) {
-    // 未登录则跳转登录页，登录后回到当前政策页
+    // 未登录则跳转登录页，登录后回到当前政务页
     router.push(`/login?redirect=${encodeURIComponent('/policy')}`)
   } else {
     // 已登录：实现申请/留言逻辑（例如弹出表单，调用后端接口）

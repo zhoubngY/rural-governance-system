@@ -51,7 +51,6 @@ const onSubmit = async () => {
 .login-container {
   padding-top: 100px;
 }
-/* PC 端额外优化 */
 @media (min-width: 768px) {
   .login-container {
     padding-top: 20vh;

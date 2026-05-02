@@ -3,20 +3,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List, Optional
 from app.core.database import get_db
-from app.core.security import get_current_user
 from app.models.note import WorkNote
 from app.schemas.note import NoteCreate, NoteUpdate, NoteInDB
-from app.models.user import User
 
 router = APIRouter(prefix="/notes", tags=["notes"])
+
+# 临时：固定用户 ID = 1（admin），确保开发环境下所有操作可用
+FIXED_USER_ID = 1
 
 @router.post("/", response_model=NoteInDB, status_code=201)
 async def create_note(
     note_in: NoteCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
 ):
-    note = WorkNote(**note_in.dict(), user_id=current_user.id)
+    note = WorkNote(**note_in.dict(), user_id=FIXED_USER_ID)
     db.add(note)
     await db.commit()
     await db.refresh(note)
@@ -28,9 +28,8 @@ async def list_notes(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
 ):
-    query = select(WorkNote).where(WorkNote.user_id == current_user.id)
+    query = select(WorkNote).where(WorkNote.user_id == FIXED_USER_ID)
     if type:
         query = query.where(WorkNote.type == type)
     query = query.order_by(WorkNote.created_at.desc()).offset(skip).limit(limit)
@@ -42,10 +41,9 @@ async def list_notes(
 async def get_note(
     note_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
 ):
     note = await db.get(WorkNote, note_id)
-    if not note or note.user_id != current_user.id:
+    if not note or note.user_id != FIXED_USER_ID:
         raise HTTPException(status_code=404, detail="Note not found")
     return note
 
@@ -54,10 +52,9 @@ async def update_note(
     note_id: int,
     note_in: NoteUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
 ):
     note = await db.get(WorkNote, note_id)
-    if not note or note.user_id != current_user.id:
+    if not note or note.user_id != FIXED_USER_ID:
         raise HTTPException(status_code=404, detail="Note not found")
     update_data = note_in.dict(exclude_unset=True)
     for key, value in update_data.items():
@@ -70,10 +67,9 @@ async def update_note(
 async def delete_note(
     note_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
 ):
     note = await db.get(WorkNote, note_id)
-    if not note or note.user_id != current_user.id:
+    if not note or note.user_id != FIXED_USER_ID:
         raise HTTPException(status_code=404, detail="Note not found")
     await db.delete(note)
     await db.commit()

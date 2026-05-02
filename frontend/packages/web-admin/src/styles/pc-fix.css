@@ -104,4 +104,29 @@
   .van-floating-bubble {
     right: calc(50% - 350px);
   }
+  .management-container {
+    padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+}
+
+/* PC 端修复：下拉菜单弹出层偏移侧边栏宽度 */
+@media (min-width: 768px) {
+  .van-dropdown-menu .van-popup {
+    left: 260px !important;
+    right: auto !important;
+  }
+  
+  /* 修复浮动按钮（如用户管理页面的悬浮加号）偏移侧边栏 */
+  .van-floating-bubble {
+    right: 20px !important;
+    z-index: 200;  /* 确保高于侧边栏 */
+  }
 }

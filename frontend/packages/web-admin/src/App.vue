@@ -1,7 +1,7 @@
 <template>
   <div class="app-layout">
-    <!-- PC 端左侧菜单 -->
-    <div class="pc-sidebar" v-if="isPc">
+    <!-- PC 左侧菜单（固定展开） -->
+    <div class="pc-sidebar" v-if="isPc && isLoggedIn">
       <div class="logo">乡村治理系统</div>
       <div class="menu-items">
         <div
@@ -18,7 +18,7 @@
     </div>
 
     <!-- 移动端底部 TabBar -->
-    <div class="mobile-tabbar" v-if="!isPc">
+    <div class="mobile-tabbar" v-if="!isPc && isLoggedIn">
       <van-tabbar v-model="activeTab" @change="onTabChange" active-color="#1989fa">
         <van-tabbar-item v-for="item in menuItems" :key="item.key" :name="item.path" :icon="item.icon">
           {{ item.title }}
@@ -26,8 +26,7 @@
       </van-tabbar>
     </div>
 
-    <!-- 主要内容区域 -->
-    <div class="main-content" :class="{ 'with-sidebar': isPc, 'with-tabbar': !isPc }">
+    <div class="main-content" :class="{ 'with-sidebar': isPc && isLoggedIn, 'with-tabbar': !isPc && isLoggedIn }">
       <router-view />
     </div>
   </div>
@@ -36,10 +35,15 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { storeToRefs } from 'pinia'
 import { showToast } from 'vant'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const route = useRoute()
+const authStore = useAuthStore()
+const { isLoggedIn } = storeToRefs(authStore)
+
 const isPc = ref(window.innerWidth >= 768)
 const activeTab = ref(route.path)
 
@@ -47,17 +51,21 @@ const menuItems = [
   { key: 'tasks', title: '任务管理', icon: 'description', path: '/tasks' },
   { key: 'my-tasks', title: '我的任务', icon: 'user-o', path: '/my-tasks' },
   { key: 'notes', title: '工作笔记', icon: 'edit', path: '/notes' },
-  { key: 'policies', title: '政策管理', icon: 'bookmark-o', path: '/policies' },
+  { key: 'policies', title: '政务管理', icon: 'bookmark-o', path: '/policies' },
+  { key: 'memorials', title: '大事记管理', icon: 'clock-o', path: '/memorials' },
+  { key: 'notices', title: '通知管理', icon: 'bullhorn-o', path: '/notices' },
+  { key: 'guides', title: '办事指南管理', icon: 'guide-o', path: '/guides' },
+  { key: 'applications', title: '申请审核', icon: 'envelop-o', path: '/applications' },
+  { key: 'consultations', title: '咨询回复', icon: 'chat-o', path: '/consultations' },
   { key: 'users', title: '用户管理', icon: 'friends-o', path: '/users' },
   { key: 'logout', title: '退出登录', icon: 'logout', path: '/logout' },
 ]
 
 const navigate = (path: string) => {
   if (path === '/logout') {
-    // 退出登录逻辑
-    localStorage.removeItem('token')
-    router.push('/login')
+    authStore.logout()
     showToast('已退出')
+    router.push('/login')
     return
   }
   router.push(path)
@@ -88,7 +96,6 @@ onUnmounted(() => {
   background-color: #f5f7fa;
 }
 
-/* PC 布局：左侧 + 右侧 */
 .pc-sidebar {
   position: fixed;
   left: 0;
@@ -136,25 +143,21 @@ onUnmounted(() => {
   color: #1989fa;
 }
 
-/* 主要内容区域 */
 .main-content {
   flex: 1;
   overflow-y: auto;
   background-color: #f5f7fa;
 }
 
-/* PC 时留出左侧菜单空间 */
 .main-content.with-sidebar {
   margin-left: 260px;
   width: calc(100% - 260px);
 }
 
-/* 移动端时底部留出 TabBar 空间 */
 .main-content.with-tabbar {
-  margin-bottom: 50px;  /* 底部 TabBar 高度 */
+  margin-bottom: 50px;
 }
 
-/* 移动端底部栏 */
 .mobile-tabbar {
   position: fixed;
   bottom: 0;
@@ -163,12 +166,10 @@ onUnmounted(() => {
   z-index: 100;
 }
 
-/* 覆盖 Vant 默认样式，让侧边栏更协调 */
 .van-icon {
   font-size: 20px;
 }
 
-/* 响应式：手机端隐藏 PC 侧边栏，PC 端隐藏移动端底部栏 */
 @media (max-width: 767px) {
   .pc-sidebar {
     display: none;

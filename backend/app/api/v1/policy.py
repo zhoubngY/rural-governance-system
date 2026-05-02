@@ -1,62 +1,66 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Optional
+from sqlalchemy import select
+from typing import List
 from app.core.database import get_db
-from app.core.security import get_current_user, get_current_user_optional, RoleChecker
-from app.crud.policy_crud import policy_crud
+from app.models.policy import Policy
 from app.schemas.policy import PolicyCreate, PolicyUpdate, PolicyInDB
-from app.models.user import User
 
-router = APIRouter(prefix="/policy", tags=["policy"])
+# 关键：redirect_slashes=False 禁止自动重定向
+router = APIRouter(prefix="/policies", tags=["policies"], redirect_slashes=False)
 
-# 公开接口：无需登录
-@router.get("/", response_model=List[PolicyInDB])
+@router.get("", response_model=List[PolicyInDB])   # 注意路径为 "" 而不是 "/"
 async def list_policies(
     db: AsyncSession = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional)  # 可选
+    skip: int = 0,
+    limit: int = 100,
 ):
-    # 如果将来需要区分展示（例如村民只看已发布，管理员看全部），可以在这里判断
-    return await policy_crud.get_multi(db)
+    result = await db.execute(select(Policy).offset(skip).limit(limit))
+    return result.scalars().all()
 
 @router.get("/{policy_id}", response_model=PolicyInDB)
 async def get_policy(
     policy_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
-    policy = await policy_crud.get(db, id=policy_id)
+    policy = await db.get(Policy, policy_id)
     if not policy:
         raise HTTPException(status_code=404, detail="Policy not found")
     return policy
 
-# 以下接口需要登录且角色为 admin
-@router.post("/", response_model=PolicyInDB)
+@router.post("", response_model=PolicyInDB, status_code=201)   # 注意路径为 ""
 async def create_policy(
     policy_in: PolicyCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(RoleChecker(["admin"]))
 ):
-    return await policy_crud.create(db, obj_in=policy_in)
+    policy = Policy(**policy_in.dict())
+    db.add(policy)
+    await db.commit()
+    await db.refresh(policy)
+    return policy
 
 @router.put("/{policy_id}", response_model=PolicyInDB)
 async def update_policy(
     policy_id: int,
     policy_in: PolicyUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(RoleChecker(["admin"]))
 ):
-    policy = await policy_crud.get(db, id=policy_id)
+    policy = await db.get(Policy, policy_id)
     if not policy:
         raise HTTPException(status_code=404, detail="Policy not found")
-    return await policy_crud.update(db, db_obj=policy, obj_in=policy_in)
+    for key, value in policy_in.dict(exclude_unset=True).items():
+        setattr(policy, key, value)
+    await db.commit()
+    await db.refresh(policy)
+    return policy
 
-@router.delete("/{policy_id}", response_model=PolicyInDB)
+@router.delete("/{policy_id}", status_code=204)
 async def delete_policy(
     policy_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(RoleChecker(["admin"]))
 ):
-    policy = await policy_crud.get(db, id=policy_id)
+    policy = await db.get(Policy, policy_id)
     if not policy:
         raise HTTPException(status_code=404, detail="Policy not found")
-    return await policy_crud.remove(db, id=policy_id)
+    await db.delete(policy)
+    await db.commit()

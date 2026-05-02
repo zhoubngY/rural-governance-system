@@ -46,7 +46,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { showToast, showLoadingToast, closeToast } from 'vant'
 import { createTask, updateTask, uploadAttachment, type Task, type TaskCreate } from '@/api/tasks'
-import apiClient from '@shared/api/client'
+import request from '@/api/client'
 
 const props = defineProps<{ initialData?: Task | null }>()
 const emit = defineEmits(['success', 'cancel'])
@@ -80,10 +80,12 @@ const fileList = ref<any[]>([])
 
 const loadUsers = async () => {
   try {
-    const res = await apiClient.get('/users/')
-    userOptions.value = res.data
+    const res = await request.get('/users')
+    // 注意：res 可能直接是数组，也可能包含 data 字段
+    const users = Array.isArray(res) ? res : (res.data || [])
+    userOptions.value = users
       .filter((u: any) => u.role === 'staff' || u.role === 'admin')
-      .map((u: any) => ({ text: u.full_name || u.username, value: u.id }))
+      .map((u: any) => ({ text: u.real_name || u.username, value: u.id }))
   } catch (err) {
     console.error(err)
   }
@@ -124,7 +126,6 @@ const onDateConfirm = ({ selectedValues }: { selectedValues: string[] }) => {
 const submit = async () => {
   if (!form.title) return showToast('请填写标题')
   
-  // 处理用户手动输入的扩展字段
   let userExtraData = {}
   if (extraDataStr.value.trim()) {
     try {
@@ -135,11 +136,9 @@ const submit = async () => {
   }
 
   const backendPriority = form.priority === 'urgent' ? 'urgent' : 'medium'
-  
-  // 极简方案：将 assignee_ids 合并到 extra_data 中
   const finalExtraData = {
     ...userExtraData,
-    assignee_ids: selectedUserIds.value   // 多负责人ID数组存入 extra_data
+    assignee_ids: selectedUserIds.value
   }
 
   const payload: TaskCreate = {
@@ -152,16 +151,15 @@ const submit = async () => {
 
   const toast = showLoadingToast({ message: '提交中...', forbidClick: true })
   try {
-    let taskId: number
     if (isEdit.value && props.initialData) {
       await updateTask(props.initialData.id, payload)
       showToast('更新成功')
       emit('success')
     } else {
       const res = await createTask(payload)
-      taskId = res.data.id
+      const taskId = res.id
       // 上传附件
-      if (fileList.value.length > 0) {
+      if (fileList.value.length > 0 && taskId) {
         for (const item of fileList.value) {
           if (item.file) {
             await uploadAttachment(taskId, item.file)

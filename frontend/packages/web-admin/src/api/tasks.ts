@@ -1,4 +1,4 @@
-import apiClient from '@shared/api/client';
+import request from './client';   // 注意导入默认导出的 request
 
 export interface Assignment {
   id: number;
@@ -53,51 +53,51 @@ export interface TaskCreate {
 }
 
 export const getTasks = async (params?: { skip?: number; limit?: number; status?: string; priority?: string; title_contains?: string }) => {
-  return apiClient.get<Task[]>('/tasks/', { params });
+  return request.get<Task[]>('/tasks/', { params });
 };
 
 export const getTaskDetail = async (id: number) => {
-  return apiClient.get<Task>(`/tasks/${id}`);
+  return request.get<Task>(`/tasks/${id}`);
 };
 
 export const createTask = async (data: TaskCreate) => {
-  return apiClient.post<Task>('/tasks/', data);
+  return request.post<Task>('/tasks/', data);
 };
 
 export const updateTask = async (id: number, data: Partial<Task>) => {
-  return apiClient.put<Task>(`/tasks/${id}`, data);
+  return request.put<Task>(`/tasks/${id}`, data);
 };
 
 export const assignTask = (taskId: number, assigneeId: number) => {
-  return apiClient.post<Task>(`/tasks/${taskId}/assign`, { assignee_id: assigneeId });
+  return request.post<Task>(`/tasks/${taskId}/assign`, { assignee_id: assigneeId });
 };
 
 export const updateAssignment = (assignmentId: number, data: { status?: string; feedback?: string }) => {
-  return apiClient.patch<Assignment>(`/tasks/assignments/${assignmentId}`, data);
+  return request.patch<Assignment>(`/tasks/assignments/${assignmentId}`, data);
 };
 
 export const startTask = (taskId: number) => {
-  return apiClient.post<Task>(`/tasks/${taskId}/start`);
+  return request.post<Task>(`/tasks/${taskId}/start`);
 };
 
 export const completeTask = (taskId: number, result_note?: string) => {
-  return apiClient.post<Task>(`/tasks/${taskId}/complete`, null, { params: { result_note } });
+  return request.post<Task>(`/tasks/${taskId}/complete`, null, { params: { result_note } });
 };
 
 export const deleteTask = (id: number) => {
-  return apiClient.delete(`/tasks/${id}`);
+  return request.delete(`/tasks/${id}`);
 };
 
 export const uploadAttachment = (taskId: number, file: File) => {
   const formData = new FormData();
   formData.append('file', file);
-  return apiClient.post<Attachment>(`/tasks/${taskId}/attachments`, formData, {
+  return request.post<Attachment>(`/tasks/${taskId}/attachments`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 };
 
 export const deleteAttachment = (attachmentId: number) => {
-  return apiClient.delete(`/tasks/attachments/${attachmentId}`);
+  return request.delete(`/tasks/attachments/${attachmentId}`);
 };
 
 export const getAttachmentDownloadUrl = (attachmentId: number) => {

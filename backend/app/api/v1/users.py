@@ -6,7 +6,8 @@ from app.crud.user_crud import user_crud
 from app.schemas.user import UserCreate, UserCreatePublic, UserInDB, UserUpdate
 from app.models.user import User
 from pydantic import BaseModel
-router = APIRouter(prefix="/users", tags=["users"])
+
+router = APIRouter(prefix="/users", tags=["users"], redirect_slashes=False)
 
 class PasswordUpdate(BaseModel):
     old_password: str
@@ -21,17 +22,25 @@ async def register_public(user_in: UserCreatePublic, db: AsyncSession = Depends(
     if existing:
         raise HTTPException(status_code=400, detail="Username already registered")
     user_data = user_in.dict()
-    user_data["role"] = "villager"
+    # 如果前端没有传 role，默认为 villager
+    if not user_data.get("role"):
+        user_data["role"] = "villager"
     user_data["hashed_password"] = get_password_hash(user_data.pop("password"))
     user = await user_crud.create(db, obj_in=user_data)
     return user
 
-@router.post("/", response_model=UserInDB)
-async def create_user(user_in: UserCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(RoleChecker(["admin"]))):
+@router.post("", response_model=UserInDB)
+async def create_user(
+    user_in: UserCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(RoleChecker(["admin"]))
+):
     existing = await user_crud.get_by_username(db, username=user_in.username)
     if existing:
         raise HTTPException(status_code=400, detail="Username already registered")
     user_data = user_in.dict()
+    # 移除 full_name 字段
+    user_data.pop('full_name', None)
     user_data["hashed_password"] = get_password_hash(user_data.pop("password"))
     user = await user_crud.create(db, obj_in=user_data)
     return user
@@ -40,9 +49,15 @@ async def create_user(user_in: UserCreate, db: AsyncSession = Depends(get_db), c
 async def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
 
-@router.get("/", response_model=list[UserInDB])
-async def read_users(db: AsyncSession = Depends(get_db), skip: int = 0, limit: int = 100, current_user: User = Depends(RoleChecker(["admin", "staff"]))):
-    return await user_crud.get_multi(db, skip=skip, limit=limit)
+@router.get("", response_model=list[UserInDB])
+async def read_users(
+    db: AsyncSession = Depends(get_db),
+    skip: int = 0,
+    limit: int = 100,
+    current_user: User = Depends(get_current_user)
+):
+    users = await user_crud.get_multi(db, skip=skip, limit=limit)
+    return users
 
 @router.put("/{user_id}", response_model=UserInDB)
 async def update_user(
@@ -54,10 +69,11 @@ async def update_user(
     user = await user_crud.get(db, id=user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    # 禁止修改自己的角色以防止锁定
     if user_id == current_user.id and user_in.role and user_in.role != current_user.role:
         raise HTTPException(status_code=400, detail="Cannot change your own role")
-    return await user_crud.update(db, db_obj=user, obj_in=user_in)
+    update_data = user_in.dict(exclude_unset=True)
+    update_data.pop('full_name', None)
+    return await user_crud.update(db, db_obj=user, obj_in=update_data)
 
 @router.delete("/{user_id}", response_model=UserInDB)
 async def delete_user(
@@ -71,9 +87,7 @@ async def delete_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return await user_crud.remove(db, id=user_id)
-from pydantic import BaseModel
 
-# 当前用户自助修改密码
 @router.post("/me/password")
 async def change_my_password(
     pw: PasswordUpdate,
@@ -86,7 +100,6 @@ async def change_my_password(
     await db.commit()
     return {"message": "Password updated"}
 
-# 管理员重置任意用户密码
 @router.post("/{user_id}/reset-password")
 async def reset_user_password(
     user_id: int,
@@ -100,5 +113,3 @@ async def reset_user_password(
     user.hashed_password = get_password_hash(pw.new_password)
     await db.commit()
     return {"message": f"Password reset for {user.username}"}
-
-
