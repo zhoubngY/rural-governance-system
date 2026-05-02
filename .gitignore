@@ -36,3 +36,6 @@ dist/
 *.py. 
 rural-governance-system_tree.txt 
 rural-governance-system_tree.txt 
+"*.log" 
+"backup_*.sql" 
+"*.sql"  
