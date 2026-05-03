@@ -1,6 +1,6 @@
 <template>
   <div class="guide-page">
-    <van-nav-bar title="办事指南" fixed placeholder />
+    <van-nav-bar title="服务指南" fixed placeholder />
 
     <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
       <van-list
@@ -18,7 +18,7 @@
       </van-list>
     </van-pull-refresh>
 
-    <van-empty v-if="!loading && list.length === 0" description="暂无办事指南" />
+    <van-empty v-if="!loading && list.length === 0" description="暂无服务指南" />
   </div>
 </template>
 

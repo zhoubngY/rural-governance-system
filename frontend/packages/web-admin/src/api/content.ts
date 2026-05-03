@@ -16,7 +16,7 @@ export const noticeApi = {
   delete: (id: number) => request.delete(`/notices/${id}`)
 }
 
-// 办事指南
+// 服务指南
 export const guideApi = {
   list: () => request.get('/guides'),
   create: (data: any) => request.post('/guides', data),

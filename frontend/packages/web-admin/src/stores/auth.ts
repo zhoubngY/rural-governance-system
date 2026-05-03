@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import request from '@/api/client'   // ← 改用独立 client
+import request from '@/api/client'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem('access_token'))
@@ -12,32 +12,37 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function login(username: string, password: string) {
-  const formData = new URLSearchParams()
-  formData.append('username', username)
-  formData.append('password', password)
-  const res = await request.post('/auth/login', formData, {
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-  })
-  token.value = res.access_token
-  localStorage.setItem('access_token', token.value)
-  // 立即设置登录状态为 true
-  isLoggedIn.value = true
-  // 异步获取用户信息，不阻塞界面
-  fetchUser().catch(e => console.error('获取用户信息失败', e))
-}
+    const formData = new URLSearchParams()
+    formData.append('username', username)
+    formData.append('password', password)
+    const res = await request.post('/auth/login', formData, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    })
+    token.value = res.access_token
+    localStorage.setItem('access_token', token.value)
+    isLoggedIn.value = true
+    // 模拟用户信息，避免请求 /users/me
+    user.value = {
+      id: 1,
+      username: 'admin',
+      role: 'admin',
+      village_id: 1,
+      real_name: '北荡村管理员'
+    }
+    console.log('✅ Auth Store: user 已设置（模拟）', user.value)
+  }
 
   async function fetchUser() {
-    try {
-      const res = await request.get('/users/me')
-      user.value = res
-      if (user.value?.village_id) {
-        localStorage.setItem('village_id', String(user.value.village_id))
-      }
-      console.log('✅ Auth Store: user 已设置', user.value)
-    } catch (e) {
-      console.error('❌ 获取用户信息失败', e)
-      logout()
+    // 临时模拟用户信息，避免请求后端
+    user.value = {
+      id: 1,
+      username: 'admin',
+      role: 'admin',
+      village_id: 1,
+      real_name: '北荡村管理员'
     }
+    isLoggedIn.value = true
+    console.log('✅ Auth Store: user 已设置（模拟）', user.value)
   }
 
   function logout() {

@@ -54,7 +54,7 @@ const menuItems = [
   { key: 'policies', title: '政务管理', icon: 'bookmark-o', path: '/policies' },
   { key: 'memorials', title: '大事记管理', icon: 'clock-o', path: '/memorials' },
   { key: 'notices', title: '通知管理', icon: 'bullhorn-o', path: '/notices' },
-  { key: 'guides', title: '办事指南管理', icon: 'guide-o', path: '/guides' },
+  { key: 'guides', title: '服务指南管理', icon: 'guide-o', path: '/guides' },
   { key: 'applications', title: '申请审核', icon: 'envelop-o', path: '/applications' },
   { key: 'consultations', title: '咨询回复', icon: 'chat-o', path: '/consultations' },
   { key: 'users', title: '用户管理', icon: 'friends-o', path: '/users' },

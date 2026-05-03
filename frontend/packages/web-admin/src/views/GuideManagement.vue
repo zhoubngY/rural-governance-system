@@ -1,7 +1,7 @@
 <template>
   <div class="management-container">
     <div class="header">
-      <h2>办事指南管理</h2>
+      <h2>服务指南管理</h2>
       <el-button type="primary" @click="openDialog()">新增指南</el-button>
     </div>
     <el-table :data="list" border stripe v-loading="loading">

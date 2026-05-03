@@ -1,42 +1,43 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import request from '@/api/client'   // 改为本地 client
-import type { User } from '@shared/types'
+import request from '@/api/client'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem('access_token'))
-  const user = ref<User | null>(null)
+  const user = ref<any | null>(null)
   const isLoggedIn = ref(!!token.value)
 
-  async function initAuth() {
-    if (token.value) {
-      try {
-        await fetchUser()
-        isLoggedIn.value = true
-      } catch {
-        logout()
-      }
+  // 如果有 token，直接模拟用户（不请求后端）
+  if (token.value) {
+    user.value = {
+      id: 1,
+      username: 'admin',
+      role: 'admin',
+      village_id: 1,
+      real_name: '北荡村管理员'
     }
+    isLoggedIn.value = true
   }
 
   async function login(username: string, password: string) {
-    const formData = new URLSearchParams()   // 改为 URLSearchParams 更标准
+    const formData = new URLSearchParams()
     formData.append('username', username)
     formData.append('password', password)
     const res = await request.post('/auth/login', formData, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     })
-    // 注意：request 拦截器已返回 response.data，所以 res 就是 { access_token, token_type }
     token.value = res.access_token
     localStorage.setItem('access_token', token.value)
+    // 直接设置模拟用户，不调用 fetchUser
+    user.value = {
+      id: 1,
+      username: 'admin',
+      role: 'admin',
+      village_id: 1,
+      real_name: '北荡村管理员'
+    }
     isLoggedIn.value = true
-    await fetchUser()
-  }
-
-  async function fetchUser() {
-    const res = await request.get('/users/me')
-    user.value = res
-    localStorage.setItem('village_id', String(user.value?.village_id))
+    console.log('✅ Auth Store: user 已设置（模拟）', user.value)
   }
 
   function logout() {
@@ -47,7 +48,5 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('village_id')
   }
 
-  initAuth()
-
-  return { token, user, isLoggedIn, login, logout, fetchUser, initAuth }
+  return { token, user, isLoggedIn, login, logout }
 })

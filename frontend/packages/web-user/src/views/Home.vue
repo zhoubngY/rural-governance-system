@@ -18,7 +18,7 @@ const menuItems = [
   { key: 'history', title: '大事记', icon: 'clock-o', path: '/history' },
   { key: 'policy', title: '政务公开', icon: 'bullhorn-o', path: '/policy' },
   { key: 'notice', title: '通知', icon: 'bell-o', path: '/notice' },
-  { key: 'guide', title: '办事指南', icon: 'guide-o', path: '/guide' },
+  { key: 'guide', title: '服务指南', icon: 'guide-o', path: '/guide' },
   { key: 'consult', title: '在线咨询', icon: 'chat-o', path: '/consult' },
 ]
 

@@ -14,7 +14,7 @@ const title = computed(() => {
   const map = {
     '/history': '大事记',
     '/notice': '通知',
-    '/guide': '办事指南'
+    '/guide': '服务指南'
   }
   return map[route.path] || '页面'
 })
